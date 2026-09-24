@@ -1,0 +1,39 @@
+%% Parallel transport — a short visual lecture: a 3D sphere, the tangent space,
+%% and holonomy (a vector that comes back rotated). Build:
+%%   lmr2svg examples/parallel-transport/deck.lmr -o parallel-transport.html
+!title Parallel Transport
+
+!slide The question
+
+Carry a vector across a surface, always keeping it **parallel to itself** — never
+turning it by hand, only sliding it along. Take it once around a closed loop, back
+to where it started.
+
+!pause
+
+Does it come back pointing the same way?
+
+!slide Flat space: nothing happens
+
+!anim
+	!src flat.py
+
+!slide A curved surface — the tangent space
+
+!anim
+	!src tangent.py
+
+!slide The surprise: it comes back rotated
+
+!anim
+	!src holonomy.py
+
+!slide Holonomy = the area you enclosed
+
+The turning angle equals the curvature integrated over the enclosed region —
+the Gauss–Bonnet theorem:
+
+$ \Delta\theta = \iint_{\Omega} K \, dA $
+
+On the unit sphere ($K = 1$) our triangle has area $\tfrac{\pi}{2}$, so the vector
+returns turned by exactly $90^\circ$. Curvature is what a closed loop remembers.

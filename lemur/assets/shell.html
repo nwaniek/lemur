@@ -1,0 +1,60 @@
+<!-- lemur-shell
+desc: the deck DOM is rendered at build time by lmr2slides (lemur.html) and
+inlined below; runtime.js only drives it (scale, steps, nav, overview, print,
+arrows). No embedded AST — the shipped product does not depend on it.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{doc_title}}</title>
+<link rel="stylesheet" href="slides.css">
+<!-- print page size follows the design box (@page cannot read a css var) -->
+<style>@page { size: {{width}}px {{height}}px; margin: 0; }</style>
+</head>
+<body>
+<!-- the deck DOM, rendered at build time from the neutral AST (lemur.html);
+     runtime.js runs the step/scale/arrow/print machinery on it -->
+<div class="deck" {{deck_attrs}}{{deck_print}}>{{deck_html}}</div>
+
+<!-- navigation wedges (bottom-right); the runtime dims them at the deck ends
+     and cues Next when there is more to show on the current slide -->
+<nav class="deck-nav" aria-label="Slide navigation">
+  <button type="button" class="deck-nav-btn deck-nav-prev"
+          title="Previous (Left arrow)">&#9664;</button>
+  <button type="button" class="deck-nav-btn deck-nav-next"
+          title="Next (Right arrow)">&#9654;</button>
+</nav>
+
+<!-- the runtime fills this with one frozen .print-page per cumulative step -->
+<div class="print-root" aria-hidden="true"></div>
+
+<!-- arrowhead marker, referenced by url(#lmr-arrowhead) from every slide's
+     arrow overlay (Plan.md Section 4.5) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="lmr-arrowhead" viewBox="0 0 10 10" refX="8" refY="5"
+          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"></path>
+  </marker>
+</defs></svg>
+
+<!-- MathJax 4. The deck DOM is present at load (rendered at build time), so
+     MathJax auto-typesets it on startup; runtime.js awaits that promise. -->
+<script>
+  window.MathJax = {
+    loader: { load: ["[tex]/html"] },
+    tex: {
+      inlineMath: [["\\(", "\\)"]],
+      displayMath: [["\\[", "\\]"]],
+      packages: { "[+]": ["html"] },
+      macros: { htmlClass: ["\\class{#1}{#2}", 2] }
+    },
+    svg: { fontCache: "local" }
+  };
+</script>
+<script defer src="{{mathjax}}"></script>
+{{code_assets}}
+<script defer src="runtime.js"></script>
+</body>
+</html>

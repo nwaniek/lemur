@@ -1,0 +1,106 @@
+%% Optimal transport on a curved surface, told with a particle system.
+%% Build:  python3 lmr2svg.py examples/optimal-transport/deck.lmr -o optimal-transport.html
+!title Moving Sand on a Sphere
+!subtitle Optimal transport on curved surfaces, one grain at a time
+!author lemur examples
+
+!slide[.middle] The oldest question in the field
+
+In 1781 Gaspard **Monge** asked how to move a pile of sand into a hole of the same
+volume with the **least total effort**.
+
+!pause
+
+Two centuries later, *optimal transport* compares images, shapes, point clouds and
+probability distributions — and it works on **curved spaces** too. Here: a sphere.
+
+!slide Two distributions of sand
+
+!anim
+	!src measures.py
+
+!slide Monge and Kantorovich
+
+Monge: find a map $T$ that pushes $\mu$ onto $\nu$ at the least cost,
+
+:: math
+	\min_{T_\#\mu = \nu} \int_M \mk{cost}{d\big(x, T(x)\big)^2} \, d\mu(x)
+
+!annotate
+	cost[#ef7d2d]: on a curved surface $d$ is the **geodesic** distance
+
+!pause
+
+Kantorovich lets mass split: a **plan** $\pi$ with marginals $\mu$ and $\nu$,
+
+:: math
+	W_2^2(\mu, \nu) = \min_{\pi \in \Pi(\mu,\nu)} \int_{M\times M} d(x,y)^2 \, d\pi(x,y)
+
+!pause
+
+For $N$ grains of equal mass the best plan is a **permutation** — a linear
+assignment problem, solved exactly.
+
+!slide Following the optimal map
+
+!anim
+	!src transport.py
+
+!slide[.middle] Straight lines on a sphere
+
+Each grain travels along a **great circle** — McCann's *displacement
+interpolation* $\mu_t$ moves mass along geodesics:
+
+:: math
+	\mu_t = \big(\gamma_t\big)_\# \pi, \qquad \gamma_t(x,y) = \exp_x\!\big(t\,\log_x y\big)
+
+!pause
+
+That is the tangent space at work: $\log_x y$ points from $x$ towards $y$, and
+$\exp_x$ walks it back onto the surface.
+
+!slide Not every plan is a good plan
+
+!anim
+	!src compare.py
+
+!slide[.middle] Why the optimal paths never cross
+
+!theorem Cyclical monotonicity
+	The support of an optimal plan never contains two pairs $(x_1,y_1)$,
+	$(x_2,y_2)$ that would be cheaper swapped:
+	:: math
+		d(x_1,y_1)^2 + d(x_2,y_2)^2 \;\le\; d(x_1,y_2)^2 + d(x_2,y_1)^2
+
+Crossing paths could always be uncrossed at a lower cost — so the optimal ones don't cross.
+
+!slide[.middle] Sinkhorn: transport with a blur
+
+Add entropy and the problem becomes smooth, convex, and fast — it is solved by
+alternately rescaling the rows and columns of a matrix:
+
+:: math
+	\pi_\varepsilon = \operatorname*{arg\,min}_{\pi \in \Pi(\mu,\nu)} \int d^2\, d\pi \;+\; \varepsilon\,\mathrm{KL}(\pi \,\|\, \mu\otimes\nu)
+
+!pause
+
+The price: the plan is **blurry**. Each grain is spread over many targets, and its
+average destination — the barycentre — is pulled towards the middle.
+
+!slide From blurry to sharp
+
+!anim
+	!src sinkhorn.py
+
+!slide[.plain]
+
+!anim
+	!src finale.py
+	!viewport full
+
+!slide[.middle] Take-aways
+
++ **OT** moves one distribution onto another at the least total cost
++ on a curved surface the cost is the **geodesic** distance, and mass travels along geodesics
++ optimal paths **don't cross**; random ones tangle
++ **Sinkhorn** trades exactness for speed: a blurry plan, pulled towards barycentres

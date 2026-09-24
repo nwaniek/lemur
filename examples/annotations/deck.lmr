@@ -1,0 +1,22 @@
+%% Annotations: annotate colours (and optionally labels) a named mark; connect
+%% draws an arrow between two marks. Arrows use real build-time glyph boxes.
+%%   lmr2svg examples/annotations/deck.lmr -o annotations.html
+!title Annotations
+
+!slide Annotate an equation
+
+:: math
+	\mu_{a \to x}(x) \;=\; \mk{sum}{\sum_{x_{\partial a}\setminus\{x\}}}
+		\mk{fac}{f_a(x_{\partial a})} \mk{prod}{\prod_{y} \mu_{y\to a}(y)}
+
+!annotate
+	sum: marginalise out everything except $x$
+	fac[#7a4b94]: weigh by the local factor
+	prod[#b0672f]: collect incoming messages
+
+!slide Connect two marks
+
+A question [What is entropy?]^q returns, later, as [a measure of surprise]^a.
+
+!connect
+	q -> a  [#5a7db0]

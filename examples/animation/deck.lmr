@@ -1,0 +1,8 @@
+%% Animation: a build-time animation embedded in a slide viewport.
+%%   lmr2svg examples/animation/deck.lmr -o animation.html
+!title Animation
+
+!slide Building a sine wave
+
+!anim
+	!src sine.py

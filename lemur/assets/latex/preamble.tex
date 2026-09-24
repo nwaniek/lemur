@@ -1,0 +1,13 @@
+% Default LaTeX preamble for lemur maths (build-time SVG via dvisvgm).
+%
+% This is the configurable surface a deck author reaches for to add packages or
+% change the maths font (see plans/Plan-SVG.md §4.2). It is injected between
+% \documentclass{standalone} and \begin{document}. Override it per theme or per
+% deck; keep it to preamble-only commands.
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{lmodern}
+\usepackage{xcolor}   % used to locate \mk{…}{…} marks inside maths at build time
+% Row spacing of align/aligned/gathered: MathJax (the HTML deck) set rows a
+% little tighter than LaTeX's default \jot of 3pt.
+\setlength{\jot}{2pt}

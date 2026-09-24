@@ -1,0 +1,81 @@
+{
+  "astVersion": 1,
+  "meta": {
+    "title": "Message Passing on Graphs",
+    "subtitle": "a worked AST example",
+    "authors": ["Ada Lovelace"],
+    "affiliation": "Analytical Engine Lab",
+    "date": "2026"
+  },
+  "presentation": {
+    "theme": "corporate",
+    "aspect": "16:9",
+    "transition": { "across": "push", "step": "rise" },
+    "progress": { "position": "bottom" },
+    "footer": [{ "type": "text", "value": "Summer School 2026" }],
+    "slideNumbers": true
+  },
+  "body": [
+    { "type": "heading", "level": 1, "content": [{ "type": "text", "value": "Factor graphs" }], "id": "factor-graphs" },
+    {
+      "type": "para",
+      "content": [
+        { "type": "text", "value": "A factor graph factors a joint distribution into " },
+        { "type": "strong", "content": [{ "type": "text", "value": "local factors" }] },
+        { "type": "text", "value": ". See " },
+        { "type": "xref", "target": "sum-product" },
+        { "type": "text", "value": " and " },
+        { "type": "cite", "keys": ["kschischang2001"] },
+        { "type": "text", "value": "." }
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        { "content": [{ "type": "text", "value": "variables and factors alternate" }] },
+        { "content": [{ "type": "text", "value": "messages flow along edges" }], "reveal": { "spec": "2-" } }
+      ]
+    },
+
+    { "type": "pagebreak", "title": [{ "type": "text", "value": "The sum-product update" }], "id": "sum-product" },
+    {
+      "type": "math",
+      "id": "sum-product-eq",
+      "tex": "m_{f\\to x}(x) = \\sum_{\\sim x} f(X) \\prod_{y} m_{y\\to f}(y)"
+    },
+    {
+      "type": "para",
+      "content": [
+        { "type": "text", "value": "The " },
+        { "type": "mark", "name": "prod", "content": [{ "type": "text", "value": "product of incoming messages" }] },
+        { "type": "text", "value": " is marginalised by the factor." }
+      ]
+    },
+    {
+      "type": "annotate",
+      "items": [
+        { "mark": "prod", "label": [{ "type": "text", "value": "incoming messages" }], "color": "#7a4b94", "reveal": { "spec": "2-" } }
+      ]
+    },
+    {
+      "type": "figure",
+      "sources": ["figs/fg_layer1.svg", "figs/fg_layer2.svg"],
+      "layers": [{ "spec": "2-" }],
+      "width": "60%",
+      "caption": [{ "type": "text", "value": "A three-node factor graph." }],
+      "id": "fig-fg"
+    },
+
+    { "type": "pagebreak", "role": "section", "title": [{ "type": "text", "value": "References" }] },
+    {
+      "type": "bibliography",
+      "entries": [
+        {
+          "key": "kschischang2001",
+          "content": [{ "type": "text", "value": "Kschischang et al., Factor graphs and the sum-product algorithm, 2001." }]
+        }
+      ]
+    }
+  ]
+}

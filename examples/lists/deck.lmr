@@ -1,0 +1,21 @@
+%% Bullet, ordered, and nested lists.
+%%   lmr2svg examples/lists/deck.lmr -o lists.html
+!title Lists
+
+!slide Bullet and ordered
+
+- a bullet item
+- another, with **bold** and inline `code`
+- nesting:
+	- a nested bullet
+	- and a sibling
+
+1. first ordered item
+2. second
+3. third
+
+!slide Revealed step by step
+
+- shown immediately
++ appears on the next step
++ and one more

@@ -1,0 +1,110 @@
+# Factor Graphs
+
+!slide Definition ^fg_def
+
+A **factor graph** is a bipartite graph $G = (V \cup F, E)$ over variables $V$
+and factors $F$, encoding a factorization
+
+:: math
+	p(x_1, \dots, x_n) \;=\; \frac{1}{Z} \prod_{a \in F} f_a(x_{\partial a}),
+	\qquad Z = \sum_{x} \prod_{a \in F} f_a(x_{\partial a})
+
+with $x_{\partial a}$ the variables adjacent to factor $a$ (see@kschischang2001).
+
+!pause
+
+!img The example graph, built up step by step ^fg_fig
+!src figs/fg_layer1.svg
+!src figs/fg_layer2.svg
+!src figs/fg_layer3.svg
+!caption Circles are variables, squares are factors.
+!width 44%
+
+
+!slide The sum-product update ^sum_product
+
+Messages are exchanged along edges. Variable-to-factor and factor-to-variable:
+
+:: math
+	\mu_{x \to a}(x) \;=\; \prod_{b \in \partial x \setminus \{a\}} \mu_{b \to x}(x)
+
+!pause
+
+:: math
+	\mu_{a \to x}(x) \;=\; \mk{sum}{\sum_{x_{\partial a} \setminus \{x\}}}
+		\mk{fac}{f_a(x_{\partial a})} \mk{prod}{\prod_{y \in \partial a \setminus \{x\}} \mu_{y \to a}(y)}
+
+!annotate
+	prod: collect incoming messages
+	fac[#7a4b94]: weigh by local factor
+	sum: marginalize out everything except $x$
+
+!pause
+
+On trees this gives exact marginals; on loopy graphs it becomes an
+__asynchronous fixed-point iteration__, and convergence is the interesting
+question.
+
+!notes
+	Derivation of the tree case on the whiteboard: distributivity of + over *.
+	Mention that scheduling matters on loopy graphs; bridge to my own work.
+
+
+!slide Grouping: one name, two places ^grouping
+
+A marginal likelihood weighs a **prior** against a **likelihood** — and both
+terms reappear, in a new guise, once the Gaussian integral is written out:
+
+:: math
+	\begin{aligned}
+	p(w \mid a, b)
+	  &= \int \mk{prior}{p(\theta \mid a)} \; \mk{lik}{p(w \mid \theta, b)} \; d\theta \\
+	  &= \int \mk{prior}{\mathcal{N}(\theta;\, \mu_a, \Sigma_a)} \;
+	         \mk{lik}{\mathcal{N}(w;\, X\theta, b^{-1} I)} \; d\theta
+	\end{aligned}
+
+!annotate
+	prior[#7a4b94]: the prior over $\theta$
+	lik[#2e7d32]: the likelihood of $w$
+
+Each name is used twice, so the two occurrences form a **group**: one colour
+covers both, and the single label's arrow fans out to each — all on one keypress.
+
+
+!slide Reference implementation
+
+:: python[1|4-6|3,7] ^sp_code
+	def msg_var_to_fac(x, a, inbox):
+		"""Product of all incoming factor messages except the one from a."""
+		out = np.ones(x.dim)
+		for b in x.neighbors:
+			if b is not a:
+				out *= inbox[b, x]
+		return out
+
+!pause
+
+Note the absence of a global schedule: `inbox` can be updated
+**asynchronously**, which is the door to spike-based formulations.
+
+
+!slide Exercise: compute by hand ^exercise
+
+Binary variables, chain $x_1 - f - x_2$ with
+$f(x_1, x_2) = \exp(J\, x_1 x_2)$, $J = 1$, $x_i \in \{-1, +1\}$.
+Fill in the message table:
+
+!table Messages after one update ^msg_table
+!cols step[c], message, "value at $x = -1$"[r] | "value at $x = +1$"[r]
+!caption Normalize each message to sum to one. Compare against the exact marginal.
+
+	1 , $\mu_{x_1 \to f}$ , 0.5 | 0.5
+	---
+	2 , $\mu_{f \to x_2}$ , ? | ?
+	===
+	3 , marginal $p(x_2)$ , ? | ?
+
+!pause
+
+- work in pairs, 10 minutes
++ **check**: why must the answer be uniform here, before you compute anything?

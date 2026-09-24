@@ -1,0 +1,22 @@
+%% Mathematics: inline and display, rendered to baked SVG outlines via LaTeX.
+%%   lmr2svg examples/math/deck.lmr -o math.html
+!title Mathematics
+
+!slide Inline and display
+
+Inline maths flows with the text: the Gaussian $\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}$ sits on the baseline.
+
+A display equation is centred on its own line — here revealed on the next step:
+
+!pause
+
+$ \mu_{a\to x}(x) = \sum_{x_{\partial a}\setminus\{x\}} f_a(x_{\partial a}) \prod_{y\in\partial a\setminus\{x\}} \mu_{y\to a}(y) $
+
+!slide Marks inside maths
+
+Use `\mk{name}{...}` to name a sub-expression for annotation:
+
+$ p(x) = \frac{1}{\mk{z}{Z}} \prod_a \mk{fac}{f_a(x_{\partial a})} $
+
+The mark `z` is the normaliser and `fac` the factor product — see the
+annotations example for how to colour and label them.

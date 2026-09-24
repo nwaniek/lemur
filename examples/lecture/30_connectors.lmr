@@ -1,0 +1,38 @@
+%% ---------------------------------------------------------------------------
+%% Turning the arrow around: link a question to its answer, and reveal each
+%% answer together with its connector. The body is centred so the sparse slide
+%% looks composed, not empty.
+%% ---------------------------------------------------------------------------
+
+!slide[.center .middle] What is our field about?
+Two questions frame everything:
+
+[what is computed]^q1? · [how is it feasible]^q2?
+
+!gap[1.5em]
+
+The answers come from two directions:
+
+[theory of computation]^a1<1-> · [compositional representations]^a2<2->
+
+!connect
+	q1 -> a1  [#c0392b]
+	q2 -> a2  [#2e5e6e]
+
+%% ---------------------------------------------------------------------------
+%% Connector directions and styles; a 'fill' gap pushes the takeaway to the
+%% bottom of the slide.
+%% ---------------------------------------------------------------------------
+
+!slide Directions and styles
+A mark [defines a target]^src, and a connector reaches it:
+
+- `->` forward, `<-` back, `<->` both, `--` a plain line
+- the bracket sets [colour and style]^dst<1->
+
+!connect
+	src <-> dst  [#7a4b94 .dashed]
+
+!gap[fill]
+
+Everything is measured at runtime, so it survives font and scale changes.

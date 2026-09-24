@@ -1,0 +1,24 @@
+%% Semantic environments: theorem/proof/definition/... (titled, ruled, nestable).
+%%   lmr2svg examples/environments/deck.lmr -o environments.html
+!title Semantic environments
+
+!slide Theorem and proof
+
+!theorem Fixed point on a tree ^bp-fix
+	On a tree, sum-product converges to the exact marginals in a finite number
+	of steps.
+
+	!remark
+		A dedent ends the innermost environment; environments nest.
+
+!proof
+	A leaf-to-root then root-to-leaf sweep stabilises every message.
+
+!slide More kinds
+
+!definition Convexity
+	A set is convex if it contains every segment between its points.
+
+!warning
+	`!theorem`, `!lemma`, `!definition`, `!proof`, `!example`, `!remark`,
+	`!warning`, `!exercise`, and more are built in; a theme restyles each kind.

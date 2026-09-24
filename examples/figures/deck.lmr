@@ -1,0 +1,13 @@
+%% Figures: a raster/SVG image embedded as a self-contained data URI.
+%%   lmr2svg examples/figures/deck.lmr -o figures.html
+!title Figures
+
+!slide An embedded figure
+
+!img A tiny factor graph ^fg
+	!src figs/diagram.svg
+	!caption Two variables and one factor. Embedded as a data URI.
+	!width 55%
+
+Images are embedded, so the output stays one self-contained file. Use
+`lmr2svg --separate-images` to ship them alongside instead.

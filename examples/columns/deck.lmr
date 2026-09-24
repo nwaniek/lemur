@@ -1,0 +1,28 @@
+%% Columns (weight-split regions) and stacks (overlaid, step-swapped layers).
+%%   lmr2svg examples/columns/deck.lmr -o columns.html
+!title Columns and stacks
+
+!slide Two columns
+
+!columns[3 2]
+	!column
+		A wider left column (weight 3). Each column flows independently, so its
+		prose, lists, and maths wrap to their own sub-region.
+
+		- point one
+		- point two
+	!column
+		A narrower right column (weight 2).
+
+		$a^2 + b^2 = c^2$
+
+!slide Stacked layers
+
+A stack overlays layers in one spot; each `!layer<spec>` says when it shows, and
+one takes the place of the previous, so nothing below moves:
+
+!stack
+	!layer<0>
+		First layer, shown from step 0.
+	!layer<1->
+		Second layer takes its place from step 1.

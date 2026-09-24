@@ -1,0 +1,20 @@
+%% Cross-references (@label shows a slide's number/title), citations (@key), and
+%% a bibliography from ^key: entries. Angle brackets make a link.
+%%   lmr2svg examples/references/deck.lmr -o references.html
+!title References
+
+!slide Definitions ^defs
+
+A factor graph factorises a joint distribution; we build on this in @results.
+
+!slide Results ^results
+
+By the argument in @defs, sum-product is exact on trees @kschischang2001. The
+idea goes back to belief propagation @pearl1988.
+
+More at <https://example.tld/course>.
+
+!slide Bibliography
+
+^kschischang2001: Kschischang, Frey, Loeliger (2001). Factor graphs and the sum-product algorithm. IEEE Trans. Inf. Theory 47(2).
+^pearl1988: Pearl (1988). Probabilistic Reasoning in Intelligent Systems. Morgan Kaufmann.

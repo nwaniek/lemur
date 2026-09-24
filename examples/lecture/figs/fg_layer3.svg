@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" width="640" height="260">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#c05d28"/>
+    </marker>
+  </defs>
+  <g stroke="#c05d28" stroke-width="3" fill="none" marker-end="url(#arr)">
+    <path d="M 110 108 C 130 92, 160 92, 180 106"/>
+    <path d="M 226 100 C 250 78, 275 68, 292 62"/>
+  </g>
+  <g font-family="Georgia, serif" font-size="19" font-style="italic" fill="#c05d28" text-anchor="middle">
+    <text x="145" y="82">μ(x₁→f)</text>
+    <text x="262" y="42">μ(f→x₂)</text>
+  </g>
+</svg>

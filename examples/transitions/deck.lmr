@@ -1,0 +1,27 @@
+%% Step reveals, gaps, and slide transitions. Set the transition once on the deck
+%% (across: none|fade|slide|push, step: none|fade|rise); a master/theme can carry
+%% a default that this overrides.
+%%   lmr2svg examples/transitions/deck.lmr -o transitions.html
+!title Transitions and reveals
+!transition slide rise
+
+!slide Step reveals
+
+Bullets appear one step at a time:
+
++ first
++ second
++ third
+
+!slide Spacing with gaps
+
+Top line.
+
+!gap[fill]
+
+`!gap[fill]` grows to push this line to the bottom of the region.
+
+!slide[.center .middle] A closing slide
+
+!slide[.center .middle] uses variant modifiers to centre and vertically middle
+the content.

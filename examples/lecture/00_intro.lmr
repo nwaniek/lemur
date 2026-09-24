@@ -1,0 +1,22 @@
+# Introduction ^intro
+
+!slide Why graphical models?
+
+Many inference problems factorize. Instead of computing with a joint
+distribution $p(x_1, \dots, x_n)$ directly, we exploit **structure**:
+
+- global function = product of local factors
+- inference = local computation + __message passing__
++ this is exactly the setting where asynchronous, distributed algorithms shine
+
+!pause
+
+The plan for today (details in @sum_product):
+
+1. factor graphs and the sum-product algorithm
+2. a hand-calculated example
+3. outlook: sheaves as a unifying language
+
+!notes
+	Ask the audience who has seen belief propagation before.
+	Calibrate the pace based on the answer.

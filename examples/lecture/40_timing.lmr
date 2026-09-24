@@ -1,0 +1,18 @@
+!slide Winner-Take All: An innocuous looking little statement
+
+We find the following somewhere in virtually all attractor networks:
+
+:: math
+	\theta  \leftarrow \max_i { f(n_i, t) }\\
+	\psi  \leftarrow  \arg\max_i { f(n_i, t) }
+
+!when<1->
+	and in an implementation of a WTA network, somewhere buried in our code, the
+	math looks like this:
+
+	:: python
+		wp = G[:, t] + WP.dot(P[:, t])
+		winner = np.argmax(wp)
+
+!when<2->
+	Two lines of math. Two lines of code.

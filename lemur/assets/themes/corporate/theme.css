@@ -1,0 +1,72 @@
+/* corporate — a clean brand theme for company / university decks: a full-bleed
+ * navy header bar carrying a logo, a quiet full-bleed footer, and generous,
+ * independently-adjustable content padding. A worked example (item 6) of the
+ * chrome + logo + padding tokens; all structure still lives in base.css. */
+:root {
+  --lmr-font: "Source Sans 3", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --lmr-mono: "JetBrains Mono", "Fira Mono", Menlo, Consolas, monospace;
+  --lmr-font-size: 39px;
+
+  --lmr-bg: #ffffff;
+  --lmr-letterbox: #0f1b2d;
+  --lmr-ink: #1f2733;
+  --lmr-heading: #16283f;
+  --lmr-heading-weight: 700;
+  --lmr-accent: #0b7285;            /* teal accent for rules/links */
+  --lmr-muted: #61707f;
+  --lmr-rule: #d7dde3;
+  --lmr-code-bg: #f1f4f7;
+
+  /* brand */
+  --lmr-brand: #16283f;             /* navy header bar */
+
+  /* content padding is independent of the chrome: extra top clearance for the
+     header bar, a little less at the bottom for the footer */
+  --lmr-pad-x: 104px;
+  --lmr-pad-top: 150px;
+  --lmr-pad-bottom: 104px;
+
+  /* full-bleed header bar (edge to edge), white text, no divider rule; the
+     text is kept off the edge by --lmr-chrome-pad-x while the fill bleeds out */
+  --lmr-chrome-x: 0;
+  --lmr-chrome-pad-x: 104px;
+  --lmr-chrome-rule: none;
+  --lmr-chrome-size: 0.5em;
+  --lmr-chrome-weight: 600;
+  --lmr-chrome-spacing: 0.02em;
+  --lmr-header-top: 0;
+  --lmr-header-bg: var(--lmr-brand);
+  --lmr-chrome-ink: #ffffff;
+
+  /* quiet full-bleed footer bar */
+  --lmr-footer-bottom: 0;
+  --lmr-footer-bg: #f2f5f8;
+
+  /* logo sits in the header bar, top-right */
+  --lmr-logo-top: 20px;
+  --lmr-logo-right: 104px;
+  --lmr-logo-height: 42px;
+}
+
+/* make the header/footer proper bars: a fixed height with vertically-centred
+   content (base.css aligns the text to the baseline for a thin rule) */
+.stage .lmr-header {
+  min-height: 82px; align-items: center;
+  padding-top: 0; padding-bottom: 0;
+}
+.stage .lmr-footer {
+  min-height: 60px; align-items: center; color: var(--lmr-muted);
+  padding-top: 0; padding-bottom: 0;
+}
+
+/* branded cover. Set the background through the --lmr-bg token (not a direct
+   'background' on .stage) so it lands on the crossfade layer and dissolves into
+   the next slide on a 'push' instead of swapping in one frame. */
+.slide.cover .stage { --lmr-bg: var(--lmr-brand); color: #eaf0f6; }
+.slide.cover h1 { color: #ffffff; font-size: 1.55em; }
+.slide.cover .lmr-title-subtitle { color: #b9c6d4; }
+.slide.cover .lmr-byline { color: #93a4b6; }
+
+/* section dividers pick up the brand navy too */
+.slide.section .stage { --lmr-bg: var(--lmr-brand); }
+.slide.section h1 { color: #ffffff; }

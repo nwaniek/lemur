@@ -1,0 +1,31 @@
+%% Plots: publication-quality figures via matplotlib, baked to self-contained SVG.
+%%   lmr2svg examples/plots/deck.lmr -o plots.html   (needs lemur[plot])
+!title Plots
+
+!slide Scatter with a fit
+
+!plot Noisy signal ^scatter
+	!src scatter.py
+	!caption A least-squares line through noisy observations; one point is flagged.
+	!width 62%
+
+!slide Contour of a scalar field
+
+!plot Field ^contour
+	!src contour.py
+	!caption Filled contours with a colorbar and overlaid level lines.
+	!width 58%
+
+!slide Grouped bars
+
+!plot Benchmarks ^bars
+	!src bars.py
+	!caption Accuracy per modality, with error bars.
+	!width 62%
+
+!slide Distributions
+
+!plot Response ^violin
+	!src violin.py
+	!caption Violin plot: the full distribution per group, means in red.
+	!width 62%

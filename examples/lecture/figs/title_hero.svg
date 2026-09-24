@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200">
+  <g stroke="#8ea6b0" stroke-width="2" fill="none" opacity="0.85">
+    <line x1="70"  y1="100" x2="170" y2="60"/>
+    <line x1="70"  y1="100" x2="170" y2="140"/>
+    <line x1="170" y1="60"  x2="290" y2="100"/>
+    <line x1="170" y1="140" x2="290" y2="100"/>
+    <line x1="290" y1="100" x2="410" y2="50"/>
+    <line x1="290" y1="100" x2="410" y2="150"/>
+    <line x1="410" y1="50"  x2="530" y2="100"/>
+    <line x1="410" y1="150" x2="530" y2="100"/>
+    <line x1="530" y1="100" x2="650" y2="100"/>
+  </g>
+  <g fill="#2e5e6e">
+    <rect x="158" y="48"  width="24" height="24"/>
+    <rect x="158" y="128" width="24" height="24"/>
+    <rect x="398" y="38"  width="24" height="24"/>
+    <rect x="398" y="138" width="24" height="24"/>
+  </g>
+  <g fill="#ffffff" stroke="#2e5e6e" stroke-width="2.5">
+    <circle cx="70"  cy="100" r="16"/>
+    <circle cx="290" cy="100" r="16"/>
+    <circle cx="530" cy="100" r="16"/>
+    <circle cx="650" cy="100" r="16"/>
+  </g>
+  <g stroke="#c05d28" stroke-width="2.5" fill="none" opacity="0.9">
+    <path d="M 92 86 C 115 68, 135 62, 154 60"/>
+    <path d="M 312 88 C 340 70, 365 58, 394 52"/>
+  </g>
+</svg>

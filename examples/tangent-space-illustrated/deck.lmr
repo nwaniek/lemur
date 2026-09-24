@@ -1,0 +1,123 @@
+%% The tangent space of a Riemannian manifold, drawn like the figures in a paper:
+%% shaded surfaces, silhouettes, haloed vectors (see ill.py and style.py). Build:
+%%   python3 lmr2svg.py examples/tangent-space-illustrated/deck.lmr -o tangent-space-illustrated.html
+!title The Tangent Space
+!subtitle …or why a dome looks flat to an ant — illustrated
+!author lemur examples
+
+!slide[.middle] An ant on a dome
+
+An ant on a huge dome sees **flat ground** in every direction.
+
+!pause
+
+[Up close, curved looks flat.]{#ef7d2d} The **tangent space** makes that precise:
+at every point $p$ of a curved surface $M$ sits a flat plane $T_pM$ — all the
+directions in which you can set off from $p$.
+
+!pause
+
+And because it __is__ flat, we can do linear algebra there: add directions,
+stretch them, measure angles.
+
+!slide A curved world
+
+!anim
+	!src world.py
+
+!slide What is a tangent vector?
+
+Take any smooth curve on the surface that passes through $p$ and record its
+velocity there:
+
+:: math
+	T_pM \;=\; \bigl\{\, \mk{vel}{\gamma'(0)} \;:\; \mk{curve}{\gamma\colon(-\varepsilon,\varepsilon)\to M}, \ \mk{base}{\gamma(0)=p} \,\bigr\}
+
+!annotate
+	curve[#2c69b0]: any smooth curve on the surface …
+	base[#3b9a66]: … through the point $p$ …
+	vel[#d8433c]: … and its velocity there
+
+!pause
+
+For a surface, $T_pM$ is a **plane**: a 2-dimensional vector space, glued to
+$M$ at $p$.
+
+!slide Every direction you can walk
+
+!anim
+	!src plane.py
+
+!slide Riemannian: a ruler in every tangent plane
+
+!definition Riemannian metric
+	A smoothly varying inner product $g_p$ on every tangent space $T_pM$ — so
+	we can measure lengths and angles of directions *at* $p$.
+
+:: math
+	g_p(u, v) = \langle u, v\rangle_{\mathbb{R}^3}, \qquad \|u\|_p = \sqrt{g_p(u,u)}
+
+!pause
+
+The dome simply inherits $g$ from the space around it. Lengths of curves follow,
+$L(\gamma) = \int \|\gamma'(t)\|_{\gamma(t)}\,dt$, and the shortest paths are the
+**geodesics** — here: arcs of great circles.
+
+!slide Flattening the dome: $\log_p$
+
+!anim
+	!src logmap.py
+
+!slide Two maps between the dome and the plane
+
+:: math
+	\mk{exp}{\exp_p(v)} = \mk{geo}{\gamma_v(1)} \qquad\qquad \mk{log}{\log_p(q)} = \exp_p^{-1}(q)
+
+!annotate
+	exp[#ef7d2d]: walk straight from $p$ in the direction $v$ …
+	geo[#2c69b0]: … for exactly $\|v\|$ units of length
+	log[#d8433c]: and back: which direction, how far, to reach $q$?
+
+!pause
+
+- $\exp_p$ turns straight lines through $p$ into **geodesics**
+- $\log_p$ is the best flat map of the dome *as seen from $p$*: distances from $p$
+  are exact — everything else is distorted, a little
+
+!slide Shrink-wrapping the plane: $\exp_p$
+
+!anim
+	!src wrap.py
+
+!slide Curvature is a circle that falls short
+
+Walk a distance $r$ from $p$ in every direction. On a flat plane you trace a
+circle of circumference $2\pi r$ — on the dome it comes out **shorter**:
+
+:: math
+	C(r) = 2\pi R \sin\frac{r}{R} = 2\pi r - \frac{\pi}{3}\,\frac{r^3}{R^2} + \dots
+
+!pause
+
+!theorem Bertrand–Diguet–Puiseux
+	The shortfall of small geodesic circles measures the Gaussian curvature:
+	:: math
+		K = \lim_{r\to 0} \frac{3\,\bigl(2\pi r - C(r)\bigr)}{\pi\, r^3} = \frac{1}{R^2}
+
+!slide A tangent space everywhere
+
+!anim
+	!src bundle.py
+
+!slide[.middle] Take-aways
+
++ $T_pM$: the velocities of curves through $p$ — a flat vector space at every point
++ $g_p$: an inner product on each $T_pM$ — lengths, angles, geodesics
++ $\exp_p$ / $\log_p$: translate between the surface near $p$ and its tangent plane
++ curvature: how much the dome refuses to be flat — circles fall short
+
+!pause
+
+!style[.center]
+	__Up close, every smooth world is flat. The interesting part is how the
+	flat pieces fit together.__

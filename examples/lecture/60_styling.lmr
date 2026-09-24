@@ -1,0 +1,29 @@
+!slide Emphasis and smart typography
+
+Four doubled markers: **bold**, __italic__, ~~struck through~~, and
+++underlined++. Each also has a style-class fallback, e.g. [like this]{.underline}.
+
+Smart typography educates straight text automatically — en dashes for ranges
+(pages 12--18), an em dash for an aside---like this one---and proper "curly
+quotes" with apostrophes that don't trip up on the '90s or an ellipsis...
+
+Inside `code` it is never touched: `grep --color 'x' ...` stays byte-exact.
+
+
+!slide Styling: colour, emphasis, styled blocks
+
+Colour or emphasise a word inline — no keypress needed — with a `{…}` attribute:
+a [one-off red word]{#c0392b}, some [bold and italic]{.bold .italic} text, and a
+[themed class]{.accent} a theme (or LaTeX preamble) defines.
+
+The same vocabulary composes with marks and reveals:
+[revealed in accent]{.accent .bold}<+->.
+
+!style[.center .frame bg:#f5f7ff]
+	A `!style` block gathers blocks and styles them together — here centred,
+	framed (`.frame`), and on a tinted background.
+
+	$E = mc^2$
+
+Everything is a *name* or a colour hint in the AST, so the same deck can render
+to slides (css) or, later, to LaTeX (`\textcolor`, `\colorbox`, environments).

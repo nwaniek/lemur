@@ -1,0 +1,23 @@
+%% 3D building blocks (lemur.anim.View + decorate): a wireframe surface, one
+%% attractor in several synchronised views, and perspective projection.
+!title 3D building blocks
+
+!slide An orbiting surface
+
+!anim
+	!src surface.py
+
+!slide One attractor, four views
+
+!anim
+	!src lorenz_views.py
+
+!slide Orthographic vs perspective
+
+!anim
+	!src projection.py
+
+!slide A 3D bar chart in perspective
+
+!anim
+	!src bars3d.py

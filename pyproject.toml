@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lemur"
+version = "0.0.3"
+description = "The lemur (.lmr) light-markup language and a toolchain that turns it into self-contained slide decks."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Nicolai Waniek" }]
+keywords = ["markup", "slides", "presentation", "latex", "markdown", "restructuredtext"]
+
+# CLI entry points. From the repo (no install) use the top-level wrapper scripts
+# — `python3 lmr2slides.py …` / `./lmr2slides.py …` (and `lmr2ast.py`) — or
+# `python3 -m lemur.emit.slides …`. These console scripts are the installed
+# equivalents.
+[project.scripts]
+lmr2ast    = "lemur.parser:main"
+lmr2slides = "lemur.emit.slides:main"
+lmr2svg    = "lemur.emit.svg:main"
+
+# The parser and the emitters' core are stdlib-only — no runtime dependencies.
+# The build-time SVG emitter (lemur.emit.svg) is the exception: it renders text
+# and maths to outlines and needs numpy + Pango (PyGObject/pycairo), plus a TeX
+# distribution with `dvisvgm` on PATH (not a pip dependency). See README.md.
+[project.optional-dependencies]
+# numpy + Pango (PyGObject/pycairo) render text/maths to outlines; pygments adds
+# code syntax highlighting. A TeX distribution with `dvisvgm` is also needed at
+# build time but is not a pip dependency.
+svg = ["numpy", "pycairo", "PyGObject", "pygments"]
+
+# `!plot` runs a matplotlib script at build time and bakes the figure to a
+# self-contained SVG (publication-quality axes/legends/colorbars/etc.).
+plot = ["matplotlib"]
+
+# The HTML documentation (`make docs`): Sphinx with the Furo theme, Markdown
+# pages via MyST. Building it also needs the svg extra (live examples).
+docs = ["sphinx", "furo", "myst-parser", "sphinx-copybutton"]
+
+# The slide renderer assets (runtime.js, CSS, themes, fonts as TTF for Pango, the
+# LaTeX preamble) ship inside the package under lemur/assets/, so a plain install
+# is self-contained.
+[tool.setuptools]
+packages = ["lemur", "lemur.emit", "lemur.typeset", "lemur.layout", "lemur.render", "lemur.themes", "lemur.anim", "lemur.anim.animation"]
+
+[tool.setuptools.package-data]
+lemur = ["assets/*", "assets/*/*", "assets/*/*/*", "assets/*/*/*/*"]

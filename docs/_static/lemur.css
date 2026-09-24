@@ -1,0 +1,32 @@
+/* lemur-example: the snippet's source, then its live preview. */
+.lemur-example {
+  margin: 1.2rem 0 1.6rem;
+  border: 1px solid var(--color-background-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.lemur-example > div[class*="highlight"],
+.lemur-example > .highlight-lemur { margin: 0; }
+.lemur-example > div[class*="highlight"] pre { border-radius: 0; margin: 0; }
+.lemur-example .rubric { margin: 0.6rem 0.8rem 0.2rem; font-size: 0.85em; }
+.lemur-preview { border-top: 1px solid var(--color-background-border); background: #fff; }
+.lemur-preview iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+}
+.lemur-preview-hint {
+  font-size: 0.75em;
+  color: var(--color-foreground-muted);
+  background: var(--color-background-secondary);
+  padding: 0.25rem 0.8rem;
+  border-top: 1px solid var(--color-background-border);
+}
+
+/* the emitter support matrix */
+table.support td, table.support th { text-align: center; }
+table.support td:first-child, table.support th:first-child { text-align: left; }
+
+/* landing page */
+.lemur-hero { font-size: 1.15em; }

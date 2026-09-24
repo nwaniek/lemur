@@ -1,0 +1,17 @@
+!title Message Passing on Graphs
+!subtitle From factor graphs to asynchronous distributed algorithms
+!titleimage figs/title_hero.svg
+!author R. Example
+!institute Summer School 2026
+!date July 2026
+!theme clean
+!transition push
+
+!include 00_intro.lmr
+!include 10_factor_graphs.lmr
+!include 20_features.lmr
+!include 30_connectors.lmr
+!include 40_timing.lmr
+!include 50_lists.lmr
+!include 60_styling.lmr
+!include 90_references.lmr

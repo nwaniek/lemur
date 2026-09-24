@@ -1,0 +1,50 @@
+name: CI
+
+# Runs the full suite (Plan.md Section 9): parser/emitter (Python), the
+# runtime pure functions (node:test + jsdom), and the headless-browser
+# integration + PDF tests against the example deck. A broken example-deck
+# render fails the build.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Emitter / parser tests (stdlib only)
+        run: python3 -m unittest discover -s tests/python -v
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Chrome for the integration tests
+        uses: browser-actions/setup-chrome@v1
+        id: chrome
+        with:
+          chrome-version: stable
+
+      # The JS test harness (jsdom + puppeteer-core) lives in ./tests/js, out of
+      # the main project tree; run the npm steps from there.
+      - name: Install dev dependencies (jsdom, puppeteer-core)
+        working-directory: tests/js
+        run: npm ci || npm install
+
+      - name: Runtime unit tests
+        working-directory: tests/js
+        run: npm run test:unit
+
+      - name: Integration + PDF tests
+        working-directory: tests/js
+        env:
+          CHROME: ${{ steps.chrome.outputs.chrome-path }}
+        run: npm run test:integration

@@ -1,0 +1,48 @@
+/* clean — sans-serif, white slides, teal accent (default theme).
+ * Only tokens and a couple of theme-specific tweaks live here; all structure
+ * is in base.css. */
+:root {
+  --lmr-font: "Source Sans 3", "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --lmr-mono: "JetBrains Mono", "Fira Mono", Menlo, Consolas, monospace;
+  --lmr-font-size: 40px;
+  --lmr-bg: #ffffff;
+  --lmr-letterbox: #2b2f36;
+  --lmr-ink: #232629;
+  --lmr-heading: #232629;
+  --lmr-heading-weight: 650;
+  --lmr-accent: #2e5e6e;
+  --lmr-muted: #5a6067;
+  --lmr-rule: #d5d8db;
+  --lmr-code-bg: #f2f2f2;
+}
+
+/* ---------------------------------------------------------------------------
+ * Customization reference (item 3). Uncomment/adjust any of these in a theme.
+ * All structure lives in base.css; these tokens re-skin it without editing it.
+ *
+ * :root {
+ *   -- slide background: a gradient or image is painted over --lmr-bg --
+ *   --lmr-bg-image: linear-gradient(135deg, #fff, #eef3f5);
+ *   --lmr-bg-image: url("bg.svg");   (put bg.svg next to the deck)
+ *   --lmr-bg-size: cover;  --lmr-bg-position: center;
+ *
+ *   -- header/footer chrome: position, size, font, color, rule --
+ *   --lmr-chrome-size: 0.5em;         (font-size of the bars)
+ *   --lmr-chrome-ink: #5a6067;        (their text color)
+ *   --lmr-chrome-font: Georgia, serif;
+ *   --lmr-chrome-weight: 600;
+ *   --lmr-chrome-spacing: 0.08em;     (letter-spacing)
+ *   --lmr-chrome-transform: uppercase;
+ *   --lmr-chrome-x: 64px;             (left/right inset; default = --lmr-pad-x)
+ *   --lmr-header-top: 40px;           (distance from the top edge)
+ *   --lmr-footer-bottom: 40px;        (distance from the bottom edge)
+ *   --lmr-chrome-rule: 2px solid #2e5e6e;  (or 'none' to drop the divider)
+ *
+ *   -- other knobs --
+ *   --lmr-pad-x / --lmr-pad-y: the stage content padding
+ *   --lmr-fade-time / --lmr-step-fade-time: transition durations
+ *   --lmr-code-kw/str/comment/num/fn/attr/type: syntax colors
+ * }
+ * A theme may also add plain css rules (e.g. '.slide.cover h1 { ... }'); see
+ * the dark, journal and gradient themes for examples.
+ * ------------------------------------------------------------------------- */

@@ -1,0 +1,28 @@
+%% Animated calculus & fields (lemur.anim): Taylor, Fourier, Riemann, a vector
+%% field, and the derivative — with text and formulas baked in.
+!title Calculus, animated
+
+!slide Taylor series: approximating sin x
+
+!anim
+	!src taylor.py
+
+!slide A square wave from its harmonics
+
+!anim
+	!src fourier.py
+
+!slide Riemann sums → the area
+
+!anim
+	!src riemann.py
+
+!slide A vector field and a streamline
+
+!anim
+	!src field.py
+
+!slide The derivative as a moving tangent
+
+!anim
+	!src tangent.py

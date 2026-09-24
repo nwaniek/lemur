@@ -1,0 +1,30 @@
+%% A corporate-identity deck. Its design + templates live in style.py
+%% (next to this file), so lmr2svg picks them up automatically:
+%%   lmr2svg examples/corporate/deck.lmr -o corporate.html
+!title Quarterly Review
+!subtitle Message Passing Division
+!author R. Example
+!institute Acme Research
+!date Q3 2026
+!logo figs/logo.svg
+!footer Acme Research — Confidential
+!progress bottom
+
+!slide Where we are
+
+- shipped the build-time SVG renderer
+- three reference themes; one self-contained file per deck
+- fully offline — no fonts or MathJax to serve
+
+!slide By the numbers
+
+!table Adoption ^adopt
+!cols metric, Q2[r] | Q3[r]
+!caption Quarter over quarter.
+
+	decks built     , 120 | 340
+	offline installs , 12 |  58
+
+!slide[.center .middle] Thank you
+
+Questions? R. Example · Acme Research

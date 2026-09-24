@@ -1,0 +1,18 @@
+%% Animated scientific figures (lemur.anim): traces, areas, 3D — baked to SVG.
+%%   lmr2svg examples/anim-science/deck.lmr -o anim-science.html
+!title Animated figures
+
+!slide The Lorenz attractor, traced over time
+
+!anim
+	!src lorenz.py
+
+!slide The area under a curve
+
+!anim
+	!src integral.py
+
+!slide A sine wave, traced from the unit circle
+
+!anim
+	!src wave.py

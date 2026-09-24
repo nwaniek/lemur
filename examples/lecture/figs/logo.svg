@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 60" role="img"
+     aria-label="Summer School emblem">
+  <!-- a tiny factor-graph emblem (nodes + a factor square + edges), then a
+       wordmark. All white, so it reads on a brand-coloured header bar. -->
+  <g fill="none" stroke="#ffffff" stroke-width="3">
+    <line x1="16" y1="30" x2="40" y2="18"/>
+    <line x1="16" y1="30" x2="40" y2="42"/>
+    <line x1="52" y1="18" x2="76" y2="30"/>
+    <line x1="52" y1="42" x2="76" y2="30"/>
+  </g>
+  <g fill="#ffffff">
+    <circle cx="16" cy="30" r="7"/>
+    <circle cx="76" cy="30" r="7"/>
+    <rect x="40" y="10" width="16" height="16" rx="2"/>
+    <rect x="40" y="34" width="16" height="16" rx="2"/>
+  </g>
+  <text x="100" y="27" fill="#ffffff" font-family="Helvetica, Arial, sans-serif"
+        font-size="20" font-weight="700" letter-spacing="1">SUMMER</text>
+  <text x="100" y="49" fill="#ffffff" font-family="Helvetica, Arial, sans-serif"
+        font-size="20" font-weight="300" letter-spacing="4">SCHOOL</text>
+</svg>

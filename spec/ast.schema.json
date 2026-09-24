@@ -1,0 +1,677 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lemur.dev/ast.schema.json",
+  "title": "lemur document AST",
+  "description": "The contract between the lemur parser and any emitter (slides/DOM, LaTeX, HTML, …). It describes an authored *document*, not a rendered artifact: no pixels, CSS classes, DOM ids, resolved reference numbers, or step integers. Presentation is captured as neutral *intent* (roles, reveal specs, hints) that each emitter interprets. Field names are spelled out (not terse) because this is a public, human-read contract; wire size is a gzip concern, not a naming one.",
+
+  "type": "object",
+  "required": ["astVersion", "meta", "body"],
+  "additionalProperties": false,
+  "properties": {
+    "astVersion": {
+      "const": 1,
+      "description": "Contract version. An emitter refuses a version it does not understand rather than mis-rendering it."
+    },
+    "meta": { "$ref": "#/$defs/meta" },
+    "presentation": { "$ref": "#/$defs/presentation" },
+    "body": {
+      "type": "array",
+      "description": "The document as a flat sequence of blocks (Pandoc-style: sections are implied by heading levels, not nested — every emitter, LaTeX included, builds its own hierarchy from them). Slide pagination is a `pagebreak` block; it is inert for non-slide emitters.",
+      "items": { "$ref": "#/$defs/block" }
+    }
+  },
+
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "description": "Neutral document metadata. What the document *is*, independent of how it is shown. An emitter decides whether to render a title page/cover from this.",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "authors": { "type": "array", "items": { "type": "string" } },
+        "affiliation": { "type": "string" },
+        "date": { "type": "string" }
+      }
+    },
+
+    "presentation": {
+      "type": "object",
+      "description": "Optional presentation *hints*. Advice a presenter/emitter MAY honour or ignore; never required to render the document. Kept separate from `meta` so the document content is not entangled with how one target displays it.",
+      "additionalProperties": false,
+      "properties": {
+        "theme": { "type": "string", "description": "Named theme; the emitter maps it to its own styling." },
+        "aspect": { "type": "string", "description": "Aspect ratio hint, e.g. \"16:9\" or \"4:3\". No pixels: the presenter derives its design box." },
+        "transition": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "across": { "type": "string", "description": "Between-page transition name (opaque string the presenter maps to its own mechanism)." },
+            "step": { "type": "string", "description": "Within-page reveal transition name." }
+          }
+        },
+        "progress": {
+          "description": "Progress indicator: false/omitted = none; true = default; object = placement.",
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": { "position": { "enum": ["top", "bottom"] } }
+            }
+          ]
+        },
+        "header": { "$ref": "#/$defs/inlineSeq", "description": "Running header content (chrome hint)." },
+        "footer": { "$ref": "#/$defs/inlineSeq" },
+        "logo": { "type": "string", "description": "Path/URL to a logo asset (chrome hint)." },
+        "slideNumbers": { "type": "boolean" },
+        "titleImage": { "type": "string", "description": "Image for a synthesized title page, if the emitter makes one." }
+      }
+    },
+
+    "reveal": {
+      "type": "object",
+      "description": "Progressive-disclosure intent for a block (talks reveal content step by step). Purely a *spec*; the mapping to integer steps is a per-emitter concern (a static/LaTeX emitter ignores it entirely). Grammar: comma-separated terms, each `n` (only at n), `n-` (from n), `-n` (up to n), or `n-m` (n..m). The `+`/`!pause` source sugar desugars to a spec here.",
+      "additionalProperties": false,
+      "required": ["spec"],
+      "properties": {
+        "spec": { "type": "string", "pattern": "^[0-9]+(-[0-9]*)?(,[0-9]+(-[0-9]*)?)*$|^-[0-9]+$" }
+      }
+    },
+
+    "inlineSeq": {
+      "type": "array",
+      "description": "A run of inline nodes.",
+      "items": { "$ref": "#/$defs/inline" }
+    },
+
+    "block": {
+      "description": "A block-level node. `reveal` (where allowed) marks progressive disclosure; `id` (where allowed) is a symbolic label for cross-references — resolution to a number/anchor is the emitter's job.",
+      "oneOf": [
+        { "$ref": "#/$defs/pagebreak" },
+        { "$ref": "#/$defs/heading" },
+        { "$ref": "#/$defs/para" },
+        { "$ref": "#/$defs/list" },
+        { "$ref": "#/$defs/code" },
+        { "$ref": "#/$defs/mathBlock" },
+        { "$ref": "#/$defs/table" },
+        { "$ref": "#/$defs/figure" },
+        { "$ref": "#/$defs/anim" },
+        { "$ref": "#/$defs/shader" },
+        { "$ref": "#/$defs/plot" },
+        { "$ref": "#/$defs/columns" },
+        { "$ref": "#/$defs/stack" },
+        { "$ref": "#/$defs/env" },
+        { "$ref": "#/$defs/styleBlock" },
+        { "$ref": "#/$defs/annotate" },
+        { "$ref": "#/$defs/connect" },
+        { "$ref": "#/$defs/spacer" },
+        { "$ref": "#/$defs/notes" },
+        { "$ref": "#/$defs/bibliography" },
+        { "$ref": "#/$defs/embed" }
+      ]
+    },
+
+    "pagebreak": {
+      "type": "object",
+      "description": "A slide-view page break (from `!slide`/`!section`). Starts a new page for a paginating emitter; ignored by flowing emitters (LaTeX/HTML article). `role` distinguishes an ordinary content page from a section-divider page.",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "pagebreak" },
+        "title": { "$ref": "#/$defs/inlineSeq" },
+        "role": { "enum": ["content", "section", "title"], "default": "content" },
+        "id": { "type": "string" },
+        "variant": { "type": "array", "items": { "type": "string" }, "description": "Neutral style variant tokens (e.g. \"plain\", \"center\"); the emitter maps them, never raw CSS classes." }
+      }
+    },
+
+    "heading": {
+      "type": "object",
+      "description": "A section heading. Level implies document structure (§/§§ in LaTeX, h1–h6 in HTML); no nesting node is needed.",
+      "additionalProperties": false,
+      "required": ["type", "level", "content"],
+      "properties": {
+        "type": { "const": "heading" },
+        "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "content": { "$ref": "#/$defs/inlineSeq" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "para": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": {
+        "type": { "const": "para" },
+        "content": { "$ref": "#/$defs/inlineSeq" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "ordered", "items"],
+      "properties": {
+        "type": { "const": "list" },
+        "ordered": { "type": "boolean" },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/listItem" } },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+    "listItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content"],
+      "properties": {
+        "content": { "$ref": "#/$defs/inlineSeq" },
+        "reveal": { "$ref": "#/$defs/reveal" },
+        "sublist": { "$ref": "#/$defs/list", "description": "A nested list under this item (with its own ordered flag)." }
+      }
+    },
+
+    "code": {
+      "type": "object",
+      "description": "A code block. `source` is the raw text; splitting into lines/spans is the emitter's rendering choice. `highlights` marks line groups to emphasise progressively.",
+      "additionalProperties": false,
+      "required": ["type", "source"],
+      "properties": {
+        "type": { "const": "code" },
+        "language": { "type": "string" },
+        "source": { "type": "string" },
+        "id": { "type": "string" },
+        "highlights": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["reveal", "lines"],
+            "properties": {
+              "reveal": { "$ref": "#/$defs/reveal" },
+              "lines": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+            }
+          }
+        },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "mathBlock": {
+      "type": "object",
+      "description": "A display equation. `tex` is the raw TeX; `id` labels it for cross-reference. `marks` records named sub-spans within `tex` (an emitter may decorate them — highlight, arrow target — but the AST stays renderer-neutral).",
+      "additionalProperties": false,
+      "required": ["type", "tex"],
+      "properties": {
+        "type": { "const": "math" },
+        "tex": { "type": "string" },
+        "marks": { "$ref": "#/$defs/marks" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "marks": {
+      "type": "array",
+      "description": "Named character spans inside a `tex` string, half-open `[from, to)` over the raw TeX. Nested marks are allowed (a span may contain another), and a `name` may repeat: same-named spans form a *group* an emitter realises identically (one colour, an annotation label's arrows fanning to each). The AST is neutral: how a mark is realised (a MathJax class, a LaTeX macro, or nothing) is the emitter's choice.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "from", "to"],
+        "properties": {
+          "name": { "type": "string" },
+          "from": { "type": "integer", "minimum": 0 },
+          "to": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "columns", "rows"],
+      "properties": {
+        "type": { "const": "table" },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "heading": { "$ref": "#/$defs/inlineSeq" },
+              "align": { "enum": ["left", "right", "center"], "default": "left" }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["cells"],
+                "properties": { "cells": { "type": "array", "items": { "$ref": "#/$defs/inlineSeq" } } }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["separator"],
+                "properties": { "separator": { "enum": ["strong", "light"] } }
+              }
+            ]
+          }
+        },
+        "header": { "type": "boolean", "default": true, "description": "Render the column-heading row? '!noheader' sets false; the columns still declare separators and alignment." },
+        "title": { "$ref": "#/$defs/inlineSeq" },
+        "caption": { "$ref": "#/$defs/inlineSeq" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "figure": {
+      "type": "object",
+      "description": "An image/figure. One source, or several stacked overlay layers (each gated by `layers[i].reveal`). `width`/`height` are author intent as a fraction/length (e.g. \"44%\"), not device pixels.",
+      "additionalProperties": false,
+      "required": ["type", "sources"],
+      "properties": {
+        "type": { "const": "figure" },
+        "sources": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "layers": { "type": "array", "items": { "$ref": "#/$defs/reveal" }, "description": "Reveal spec per source beyond the first (overlay build)." },
+        "width": { "type": "string" },
+        "height": { "type": "string" },
+        "caption": { "$ref": "#/$defs/inlineSeq" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "anim": {
+      "type": "object",
+      "description": "A build-time animation embedded in a slide viewport. `src` is a `lemur.anim` (wanim-style) Python module; `viewport` says where on the slide it renders — \"body\" (default), \"full\", or an \"x y w h\" rect. `width`/`height` are author-intent sizes (fraction/length, not pixels). The emitter runs the module to get the keyframe IR and bakes it into the viewport; each `self.next()` beat becomes a slide step (no step count in the AST).",
+      "additionalProperties": false,
+      "required": ["type", "src", "viewport"],
+      "properties": {
+        "type": { "const": "anim" },
+        "src": { "type": "string" },
+        "viewport": { "type": "string" },
+        "width": { "type": "string" },
+        "height": { "type": "string" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "shader": {
+      "type": "object",
+      "description": "A live GPU shader on the slide. `src` is a GLSL fragment shader using Shadertoy's `mainImage(out vec4, in vec2)` convention (uniforms iResolution, iTime, iTimeDelta, iFrame, iMouse, plus lemur's smoothed `iStep`). `viewport` as for `anim` (\"full\" draws behind the slide's text). `steps` is how many slide steps it drives; `sound` an optional generative-soundtrack preset; `quality` a resolution scale. Emitters that cannot run it show a placeholder.",
+      "additionalProperties": false,
+      "required": ["type", "src", "viewport"],
+      "properties": {
+        "type": { "const": "shader" },
+        "src": { "type": "string" },
+        "viewport": { "type": "string" },
+        "width": { "type": "string" },
+        "height": { "type": "string" },
+        "steps": { "type": "integer", "minimum": 0 },
+        "sound": { "type": "string" },
+        "quality": { "type": "string" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "plot": {
+      "type": "object",
+      "description": "A figure produced by a matplotlib `!src` module, baked to a self-contained SVG at build time and placed like a figure. `width`/`height` are author-intent sizes (fraction/length, not pixels).",
+      "additionalProperties": false,
+      "required": ["type", "src"],
+      "properties": {
+        "type": { "const": "plot" },
+        "src": { "type": "string" },
+        "width": { "type": "string" },
+        "height": { "type": "string" },
+        "caption": { "$ref": "#/$defs/inlineSeq" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "columns": {
+      "type": "object",
+      "description": "Side-by-side columns. `weight` is a relative width; `style` (on the block or a column) carries symbolic style classes — e.g. the built-in `.center`/`.bottom` set a column's vertical alignment.",
+      "additionalProperties": false,
+      "required": ["type", "columns"],
+      "properties": {
+        "type": { "const": "columns" },
+        "style": { "$ref": "#/$defs/style" },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["body"],
+            "properties": {
+              "weight": { "type": "number", "default": 1 },
+              "style": { "$ref": "#/$defs/style" },
+              "body": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+            }
+          }
+        },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "stack": {
+      "type": "object",
+      "description": "Overlapping layers occupying the same space, each shown per its reveal spec (things that take each other's place).",
+      "additionalProperties": false,
+      "required": ["type", "layers"],
+      "properties": {
+        "type": { "const": "stack" },
+        "layers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["reveal", "body"],
+            "properties": {
+              "reveal": { "$ref": "#/$defs/reveal" },
+              "body": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+            }
+          }
+        }
+      }
+    },
+
+    "env": {
+      "type": "object",
+      "description": "A semantic environment (theorem, lemma, proof, example, …). `kind` names it; the emitter maps it (LaTeX `\\begin{kind}`, an html box, a styled block) and decides numbering/label. `title` is an optional inline title; `body` nests any blocks, including other environments. `id` labels it for cross-reference. Neutral: an emitter with no notion of the kind can still render title + body.",
+      "additionalProperties": false,
+      "required": ["type", "kind", "body"],
+      "properties": {
+        "type": { "const": "env" },
+        "kind": { "type": "string" },
+        "title": { "$ref": "#/$defs/inlineSeq" },
+        "id": { "type": "string" },
+        "body": { "type": "array", "items": { "$ref": "#/$defs/block" } },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "styleBlock": {
+      "type": "object",
+      "description": "A styled block (from `!style`): its `body` is any blocks, decorated by a `style`. Purely visual (no semantic label) — the emitter realises the style (html classes + inline style; LaTeX environments/`\\colorbox`/macros). Built-in style classes include `.frame` (draw a box) and `.center`. `id` labels it for cross-reference.",
+      "additionalProperties": false,
+      "required": ["type", "body"],
+      "properties": {
+        "type": { "const": "style" },
+        "style": { "$ref": "#/$defs/style" },
+        "id": { "type": "string" },
+        "body": { "type": "array", "items": { "$ref": "#/$defs/block" } },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "style": {
+      "type": "object",
+      "description": "A neutral style attribute. One rule: `.name` = a symbolic style class (built-in like `.bold`/`.center`/`.frame` or user-defined; the emitter maps each to a css class / a LaTeX macro), `color` = a foreground colour and `bg` = a background (a `#rrggbb` or css colour-name hint the emitter may honour or ignore). Names and hints only — no css, no geometry.",
+      "additionalProperties": false,
+      "properties": {
+        "classes": { "type": "array", "items": { "type": "string" } },
+        "color": { "type": "string" },
+        "bg": { "type": "string" }
+      }
+    },
+
+    "annotate": {
+      "type": "object",
+      "description": "Author intent to annotate named marks (see the `mark` inline) with labels/emphasis, revealed progressively. How it is drawn (callouts + arrows, margin notes, footnotes, or nothing) is the emitter's choice — no geometry here.",
+      "additionalProperties": false,
+      "required": ["type", "items"],
+      "properties": {
+        "type": { "const": "annotate" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mark"],
+            "properties": {
+              "mark": { "type": "string", "description": "Name of the `mark` span this annotates." },
+              "label": { "$ref": "#/$defs/inlineSeq" },
+              "color": { "type": "string", "description": "Author-chosen colour hint; the emitter may ignore it." },
+              "emphasis": { "type": "array", "items": { "type": "string" }, "description": "Style-class names applied to the mark as a step-gated highlight (built-in `bold`/`italic`/`underline`, or your own)." },
+              "reveal": { "$ref": "#/$defs/reveal" }
+            }
+          }
+        }
+      }
+    },
+
+    "spacer": {
+      "type": "object",
+      "description": "Vertical space (from `!gap`). `size` is a css length ('2em') or 'fill' (grow to distribute the remaining space); absent means a default single gap. Slide-view presentation intent — a manuscript emitter drops it.",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "spacer" },
+        "size": { "type": "string" }
+      }
+    },
+
+    "connect": {
+      "type": "object",
+      "description": "Author intent to connect named marks (see the `mark` inline) with directed, styled connectors, revealed progressively. Neutral 'link mark A to mark B' — no geometry. How it is drawn (an arrow, a plain line, or nothing) is the emitter's choice; a slide emitter draws arrows, a LaTeX/article emitter typically drops them.",
+      "additionalProperties": false,
+      "required": ["type", "links"],
+      "properties": {
+        "type": { "const": "connect" },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to", "dir"],
+            "properties": {
+              "from": { "type": "string", "description": "Name of the source `mark`." },
+              "to": { "type": "string", "description": "Name of the target `mark`." },
+              "dir": { "enum": ["fwd", "back", "both", "none"], "description": "Arrowhead direction: fwd (from→to), back (to→from), both, or none (a plain line)." },
+              "color": { "type": "string", "description": "Author-chosen colour hint; the emitter may ignore it." },
+              "styles": { "type": "array", "items": { "enum": ["dashed", "solid", "thin", "thick", "straight", "curved"] } },
+              "reveal": { "$ref": "#/$defs/reveal" }
+            }
+          }
+        }
+      }
+    },
+
+    "notes": {
+      "type": "object",
+      "description": "Speaker notes: a nested body. A slide emitter may surface these in a presenter view or drop them; a manuscript emitter drops them.",
+      "additionalProperties": false,
+      "required": ["type", "body"],
+      "properties": {
+        "type": { "const": "notes" },
+        "body": { "type": "array", "items": { "$ref": "#/$defs/block" } }
+      }
+    },
+
+    "bibliography": {
+      "type": "object",
+      "description": "Bibliography entries keyed for citation. Numbering/formatting is the emitter's job.",
+      "additionalProperties": false,
+      "required": ["type", "entries"],
+      "properties": {
+        "type": { "const": "bibliography" },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "content"],
+            "properties": {
+              "key": { "type": "string" },
+              "content": { "$ref": "#/$defs/inlineSeq" }
+            }
+          }
+        }
+      }
+    },
+
+    "embed": {
+      "type": "object",
+      "description": "An escape hatch for target-specific dynamic content (a live chart, a widget). No single neutral rendering: the DOM emitter may inline `html`/`script`; a static emitter uses `fallback`. Carrying the fallback in the AST is what lets each emitter choose.",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "embed" },
+        "html": { "type": "string", "description": "Inline HTML for DOM emitters." },
+        "script": { "type": "string", "description": "Inline JS for DOM emitters (self-contained; no network at render)." },
+        "fallback": { "$ref": "#/$defs/figure", "description": "Static stand-in for emitters that cannot run the embed." },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "inline": {
+      "description": "An inline node.",
+      "oneOf": [
+        { "$ref": "#/$defs/text" },
+        { "$ref": "#/$defs/strong" },
+        { "$ref": "#/$defs/emph" },
+        { "$ref": "#/$defs/strike" },
+        { "$ref": "#/$defs/underline" },
+        { "$ref": "#/$defs/inlineCode" },
+        { "$ref": "#/$defs/inlineMath" },
+        { "$ref": "#/$defs/link" },
+        { "$ref": "#/$defs/xref" },
+        { "$ref": "#/$defs/cite" },
+        { "$ref": "#/$defs/mark" },
+        { "$ref": "#/$defs/inlineSpan" },
+        { "$ref": "#/$defs/break" }
+      ]
+    },
+
+    "break": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": { "type": { "const": "break" } },
+      "description": "A hard inline line break — '\\n' in source, '<br>' in flowing output."
+    },
+
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "const": "text" },
+        "value": { "type": "string" }
+      }
+    },
+    "strong": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": { "type": { "const": "strong" }, "content": { "$ref": "#/$defs/inlineSeq" } }
+    },
+    "emph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": { "type": { "const": "emph" }, "content": { "$ref": "#/$defs/inlineSeq" } }
+    },
+    "strike": {
+      "type": "object",
+      "description": "Struck-through text (from `~~…~~`). The emitter realises it (`<s>`; LaTeX `\\sout`).",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": { "type": { "const": "strike" }, "content": { "$ref": "#/$defs/inlineSeq" } }
+    },
+    "underline": {
+      "type": "object",
+      "description": "Underlined text (from `++…++`). The emitter realises it (`<u>`; LaTeX `\\underline`).",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": { "type": { "const": "underline" }, "content": { "$ref": "#/$defs/inlineSeq" } }
+    },
+    "inlineCode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value"],
+      "properties": { "type": { "const": "code" }, "value": { "type": "string" } }
+    },
+    "inlineMath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "tex"],
+      "properties": {
+        "type": { "const": "math" },
+        "tex": { "type": "string" },
+        "marks": { "$ref": "#/$defs/marks" }
+      }
+    },
+    "link": {
+      "type": "object",
+      "description": "An external link (URL).",
+      "additionalProperties": false,
+      "required": ["type", "href", "content"],
+      "properties": {
+        "type": { "const": "link" },
+        "href": { "type": "string" },
+        "content": { "$ref": "#/$defs/inlineSeq" }
+      }
+    },
+    "xref": {
+      "type": "object",
+      "description": "A symbolic internal cross-reference to a labelled `id` (a heading, figure, equation, or page). The parser does NOT resolve it to a number or anchor — that is the emitter's job (\\ref in LaTeX, an anchor in HTML, a page link in slides). An unresolved target is an emitter-time diagnostic, not a distinct node.",
+      "additionalProperties": false,
+      "required": ["type", "target"],
+      "properties": {
+        "type": { "const": "xref" },
+        "target": { "type": "string" },
+        "content": { "$ref": "#/$defs/inlineSeq", "description": "Optional custom link text; otherwise the emitter supplies the resolved label/number." }
+      }
+    },
+    "cite": {
+      "type": "object",
+      "description": "A citation of one or more bibliography keys. Symbolic; the emitter formats the marks/numbers.",
+      "additionalProperties": false,
+      "required": ["type", "keys"],
+      "properties": {
+        "type": { "const": "cite" },
+        "keys": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "prefix": { "$ref": "#/$defs/inlineSeq", "description": "Optional text before the citation marks (e.g. \"see \")." }
+      }
+    },
+    "mark": {
+      "type": "object",
+      "description": "A named span, targetable by an `annotate`/`connect` block or by emphasis. `reveal` (optional) gates when it appears, like a block's. Neutral: an emitter with no annotation/reveal concept just renders the content.",
+      "additionalProperties": false,
+      "required": ["type", "name", "content"],
+      "properties": {
+        "type": { "const": "mark" },
+        "name": { "type": "string" },
+        "content": { "$ref": "#/$defs/inlineSeq" },
+        "style": { "$ref": "#/$defs/style" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "inlineSpan": {
+      "type": "object",
+      "description": "An unnamed inline span carrying a `style` and/or a `reveal` spec — a run of text that is coloured/emphasised or appears on a given step, without being a list item or its own block. A plain emitter just renders the content.",
+      "additionalProperties": false,
+      "required": ["type", "content"],
+      "properties": {
+        "type": { "const": "span" },
+        "content": { "$ref": "#/$defs/inlineSeq" },
+        "style": { "$ref": "#/$defs/style" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    }
+  }
+}

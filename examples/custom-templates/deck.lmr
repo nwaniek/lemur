@@ -1,0 +1,16 @@
+%% A user-defined slide template. style.py (next to this file) registers a
+%% `banner` template; a slide selects it with !slide[.banner]. lmr2svg
+%% auto-loads style.py:
+%%   lmr2svg examples/custom-templates/deck.lmr -o custom.html
+!title Custom Templates
+
+!slide Regular content slide
+
+This uses the built-in **content** template — left title, accent rule, footer.
+
+!slide[.banner] A banner slide
+
+This slide uses a **custom** template: a full-width accent band with the title reversed out.
+
+- templates are plain Python functions
+- selected per-slide with `!slide[.name]`

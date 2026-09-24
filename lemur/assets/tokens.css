@@ -1,0 +1,106 @@
+/* tokens.css — the design-token layer of the display contract
+ * (Plan-DisplayModel §3.3). Concatenated ahead of base.css by
+ * lmr2slides.load_theme; a theme overrides these, never the structure. */
+
+/* ==========================================================================
+   Design tokens — the single, documented theming surface (Plan-DisplayModel
+   §3.3). The structural rules below reference these with NO inline fallbacks;
+   a theme's :root is concatenated after this file and so overrides any of them,
+   and a per-slide variant may re-scope any token (e.g. '.slide.dark {
+   --lmr-bg:#111 }'). These defaults match the 'clean' theme, so base.css alone
+   renders sanely with no theme. Runtime-set vars (--scale, --arrow-color,
+   --arrow-len, --hl, --design-w/h) are NOT theme tokens and keep their own
+   fallbacks where they are used.
+   ========================================================================== */
+:root {
+  /* palette */
+  --lmr-bg: #fff;
+  --lmr-ink: #232629;
+  --lmr-heading: var(--lmr-ink);
+  --lmr-muted: #666;
+  --lmr-accent: #2e5e6e;
+  --lmr-rule: #d5d8db;
+  --lmr-letterbox: #000;
+  --lmr-error: #c0392b;             /* MathJax error box outline */
+  --lmr-warn: #c0392b;              /* !warning environment rule */
+  --lmr-overflow-warn: #ff5252;     /* dev outline when content overflows */
+  --lmr-badref-ink: #b00020;
+  --lmr-badref-bg: #ffeaea;
+
+  /* code palette */
+  --lmr-code-bg: #f2f2f2;
+  --lmr-code-block-bg: var(--lmr-code-bg);
+  --lmr-code-hl-bg: rgba(240, 200, 40, 0.16);
+  --lmr-code-kw: #a3562a;
+  --lmr-code-str: #3a7d44;
+  --lmr-code-comment: #8a9099;
+  --lmr-code-num: #7a4b94;
+  --lmr-code-fn: #2e5e6e;
+  --lmr-code-attr: #b05a2c;
+  --lmr-code-type: #2e6e5e;
+
+  /* typography */
+  --lmr-font: "Source Sans 3", system-ui, sans-serif;
+  --lmr-heading-font: var(--lmr-font);
+  --lmr-mono: "JetBrains Mono", "Fira Mono", Menlo, Consolas, monospace;
+  --lmr-font-size: 40px;
+  --lmr-heading-weight: 650;
+  --lmr-heading-spacing: -0.01em;
+  --lmr-heading-rule: 2px solid var(--lmr-accent);
+  --lmr-h1-size: 1.7em;             /* cover title */
+  --lmr-h2-size: 1.35em;            /* slide title */
+  --lmr-h3-size: 1.1em;
+  --lmr-section-size: 1.9em;        /* section-divider title */
+
+  /* spacing / layout */
+  --lmr-pad-x: 96px;
+  --lmr-pad-y: 72px;
+  --lmr-pad-top: var(--lmr-pad-y);
+  --lmr-pad-bottom: var(--lmr-pad-y);
+  --lmr-column-gap: 1.6em;
+  --lmr-figure-max-h: 560px;
+  --lmr-image-frame: none;
+
+  /* slide background layer */
+  --lmr-bg-image: none;
+  --lmr-bg-size: cover;
+  --lmr-bg-position: center;
+
+  /* presentation chrome (header / footer / logo) */
+  --lmr-chrome-bg: transparent;
+  --lmr-chrome-x: var(--lmr-pad-x);
+  --lmr-chrome-pad-x: 0;
+  --lmr-chrome-size: 0.5em;
+  --lmr-chrome-font: inherit;
+  --lmr-chrome-weight: inherit;
+  --lmr-chrome-spacing: normal;
+  --lmr-chrome-transform: none;
+  --lmr-chrome-ink: var(--lmr-muted);
+  --lmr-chrome-rule: 1px solid var(--lmr-rule);
+  --lmr-header-bg: var(--lmr-chrome-bg);
+  --lmr-footer-bg: var(--lmr-chrome-bg);
+  --lmr-header-top: calc(var(--lmr-pad-y) * 0.42);
+  --lmr-footer-bottom: calc(var(--lmr-pad-y) * 0.42);
+  --lmr-logo-top: calc(var(--lmr-pad-y) * 0.30);
+  --lmr-logo-right: var(--lmr-pad-x);
+  --lmr-logo-height: 56px;
+
+  /* semantic environments */
+  --lmr-env-rule: var(--lmr-accent);
+
+  /* presenter UI: nav wedges + progress bar (not scaled, not printed) */
+  --lmr-nav-bg: rgba(60, 60, 60, 0.32);
+  --lmr-nav-bg-hover: rgba(60, 60, 60, 0.6);
+  --lmr-nav-ink: #ececec;
+  --lmr-progress: var(--lmr-accent);
+  --lmr-progress-height: 4px;
+  --lmr-progress-opacity: 0.7;
+
+  /* motion timings */
+  --lmr-hl-fade: 0.25s;
+  --lmr-draw-time: 0.35s;
+  --lmr-fade-time: 0.45s;
+  --lmr-slide-time: 0.55s;
+  --lmr-step-fade-time: 0.3s;
+  --lmr-step-rise-time: 0.4s;
+}

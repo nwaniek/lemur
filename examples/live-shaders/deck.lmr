@@ -1,0 +1,146 @@
+%% Live GPU shaders on slides — a small demoscene homage, and how it is made.
+%% Build:  python3 lmr2svg.py examples/live-shaders/deck.lmr -o live-shaders.html
+%% In the browser: → / Space step the scenes; press m for the soundtrack.
+!footer A World Made of Maths
+
+#[.plain] A World Made of Maths
+## every pixel you see is computed live on your GPU — press → to wake the sky, m for sound
+
+!shader
+	!src aurora.glsl
+	!viewport full
+	!steps 3
+	!sound aurora
+
+!slide[.middle] What am I looking at?
+
+No video and no images: a few hundred lines of **GLSL** inside this deck, a
+function evaluated for each of the ~2 million pixels of your screen, sixty
+times a second.
+
+!pause
+
+Each keypress moves a scene to its next state — the shader sees an eased
+`iStep`, so dawn __glides__ into day. Press **m** for a generative soundtrack.
+
+!pause
+
+:: lemur
+	!shader
+		!src aurora.glsl
+		!viewport full
+		!steps 3
+		!sound aurora
+
+!slide Mountains from noise
+
+!columns[42 58]
+	!column[.center]
+		**Fractional Brownian motion**: add octaves of smooth noise, each twice
+		as fine and half as strong,
+
+		:: math
+			\mathrm{fbm}(p) = \sum_{k=0}^{K-1} 2^{-k}\, n\!\left(2^k R^k p\right)
+
+		One octave per keypress: continents, then hills, then boulders — the
+		same statistics at every scale.
+	!column
+		!shader
+			!src fbm.glsl
+			!steps 5
+
+!slide Rays that know how far to go
+
+!columns[60 40]
+	!column
+		!anim
+			!src spheretrace.py
+	!column[.center]
+		A **signed distance function** $f$ says how far the nearest surface is —
+		so a ray may safely jump that far:
+
+		:: math
+			t_{k+1} = t_k + f\big(o + t_k\,d\big)
+
+		The circles never cross the scene; the steps shrink near a surface and
+		stop at $f < \varepsilon$. For terrain, $f \approx p_y - h(p_{xz})$.
+
+!slide[.plain]
+
+!shader
+	!src terrain.glsl
+	!viewport full
+	!steps 3
+	!sound drone
+
+!gap[fill]
+
+!style[.center]
+	[a homage to __Elevated__ — dawn, day, dusk, night: press →]{#eef3f8}
+
+!slide Clouds are light, lost in fog
+
+!columns[40 60]
+	!column[.center]
+		Light through a cloud decays as it goes (**Beer–Lambert**),
+
+		:: math
+			T = \exp\!\Big(-\!\int \sigma_t(s)\, ds\Big)
+
+		and scatters mostly forward (**Henyey–Greenstein**):
+
+		:: math
+			p(\theta) = \frac{1 - g^2}{4\pi\,(1 + g^2 - 2g\cos\theta)^{3/2}}
+
+		Steps: fair weather · cumulus · sunset · a storm.
+	!column
+		!shader
+			!src clouds.glsl
+			!steps 3
+
+!slide Fluids without a solver
+
+A velocity field that is the **curl** of a smooth noise stream function cannot
+compress — it swirls like a fluid, for free:
+
+:: math
+	v = \nabla^{\perp}\psi = \big(\partial_y \psi,\; -\partial_x \psi\big), \qquad \nabla \cdot v = 0
+
+!shader
+	!src flow.glsl
+	!steps 3
+
+!slide Put a shader on your slide
+
+!columns[48 52]
+	!column
+		:: lemur
+			!shader
+				!src flow.glsl
+				!viewport body
+				!steps 3
+				!sound drone
+				!quality 0.75
+
+		`#include "common.glsl"` works — lemur inlines it at build time.
+	!column
+		!table
+		!cols Uniform | Meaning
+		!noheader
+
+			`iResolution`, `iTime` | Shadertoy's, so snippets paste in
+			`iStep`                | the slide step, eased (0 … `!steps`)
+			`iStepRaw`             | the same, as an integer
+			`iMouse`               | the pointer over the canvas
+
+		`!viewport full` draws behind the slide's text; `!quality` caps the
+		resolution (it also adapts to hold the frame rate). Printing keeps the
+		last frame.
+
+#[.plain] Thank you
+## inspired by __Elevated__ (Rgba & TBC, 2009) — rendered live, as it should be
+
+!shader
+	!src finale.glsl
+	!viewport full
+	!sound aurora

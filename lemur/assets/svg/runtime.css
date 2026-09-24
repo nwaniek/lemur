@@ -1,0 +1,110 @@
+/* Display runtime for build-time SVG decks: navigation, step reveals, and the
+   slide overview (grid 'o' / sidebar 'O'). Colours come from the master via the
+   --bg / --fg custom properties set inline by the emitter. */
+
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden;
+  font-family: system-ui, sans-serif; }
+
+/* Slides are stacked (all present, positioned) so they can cross-fade or travel.
+   `none` = instant cut (base rules, no transition); the deck's transition token
+   is set on <body data-across=…> by the emitter. */
+.slide { position: fixed; inset: 0; display: flex;
+  align-items: center; justify-content: center; opacity: 0; visibility: hidden; }
+.slide.is-current { opacity: 1; visibility: visible; z-index: 1; }
+svg { width: 100%; height: 100%; display: block; }
+[data-step] { transition: opacity .35s ease, transform .35s ease; }
+
+/* A baked `!anim` holds its *final* frame — right for print / no-JS, but on
+   screen it would flash before playback starts. Hide it on screen until the
+   runtime has applied the current frame (it sets inline visibility then); print
+   has no such rule, so the completed animation shows. */
+@media screen { .lmr-anim { visibility: hidden; } }
+
+/* -- across-slide transitions (data-across) -------------------------------- */
+/* fade: cross-dissolve — both slides animate opacity together. */
+body[data-across="fade"] .slide { transition: opacity .45s ease, visibility 0s .45s; }
+body[data-across="fade"] .slide.is-current { transition: opacity .45s ease, visibility 0s; }
+/* slide / push: the frame travels one viewport width. Only the current slide and
+   the one just left (is-out) are visible; the rest stay hidden off-screen, so no
+   slide flashes on load or piles up behind the crossing pair. */
+body[data-across="slide"] .slide, body[data-across="push"] .slide {
+  transition: transform .5s cubic-bezier(.4, 0, .2, 1); }
+body[data-across="slide"] .slide.is-current, body[data-across="slide"] .slide.is-out,
+body[data-across="push"] .slide.is-current, body[data-across="push"] .slide.is-out {
+  opacity: 1; visibility: visible; }
+body[data-across="slide"] .slide.is-before, body[data-across="push"] .slide.is-before { transform: translateX(-100%); }
+body[data-across="slide"] .slide.is-after, body[data-across="push"] .slide.is-after { transform: translateX(100%); }
+body[data-across="slide"] .slide.is-current, body[data-across="push"] .slide.is-current { transform: translateX(0); }
+/* a jump of more than one slide cuts instead of animating (one reflow). */
+body.no-anim .slide { transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .slide, [data-step] { transition: none !important; } }
+
+/* progress bar (opt-in via !progress): scaleX tracks the deck position. */
+#progress { position: fixed; left: 0; height: 5px; width: 100%; z-index: 30;
+  transform-origin: left center; transform: scaleX(0); background: var(--accent);
+  opacity: .5; pointer-events: none; transition: transform .3s ease; }
+#progress.top { top: 0; }
+#progress.bottom { bottom: 0; }
+
+/* navigation wedges: triangles bottom-right, dimmed at the deck ends, Next cued
+   in the accent colour while the current slide still has sub-steps to reveal */
+#nav { position: fixed; right: 20px; bottom: 16px; z-index: 40;
+  display: flex; gap: 8px; opacity: .4; transition: opacity .2s ease; }
+#nav:hover { opacity: 1; }
+.nav-btn { border: 0; cursor: pointer; font-size: 20px; line-height: 1;
+  padding: 6px 10px; border-radius: 6px; color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 14%, transparent);
+  transition: background .15s ease, opacity .15s ease; }
+.nav-btn:hover { background: color-mix(in srgb, var(--fg) 26%, transparent); }
+#nav.at-start .nav-prev, #nav.at-end .nav-next { opacity: .25; pointer-events: none; }
+#nav[data-more="step"] .nav-next { background: var(--accent); color: var(--bg); }
+
+/* --- overview (grid + sidebar) --------------------------------------------- */
+:root { --sidebar-w: 340px; }
+#ov { position: fixed; display: none; z-index: 50; overflow: auto;
+  background: color-mix(in srgb, var(--bg) 82%, #000); }
+#ov.grid { inset: 0; }
+#ov.sidebar { inset: 0 auto 0 0; width: var(--sidebar-w);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, .35); }
+
+#ov-grid { display: grid; gap: 18px; padding: 22px; }
+#ov.grid #ov-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+#ov.sidebar #ov-grid { grid-template-columns: 1fr; gap: 12px; padding: 14px; }
+
+/* the sidebar docks: the presented slide slides over to make room */
+body.ov-sidebar .slide.is-current { inset: 0 0 0 var(--sidebar-w); }
+
+/* drag handle on the sidebar's right edge (shown by JS in sidebar mode) */
+#ov-resizer { position: fixed; top: 0; height: 100%; width: 10px;
+  left: calc(var(--sidebar-w) - 5px); z-index: 51; cursor: ew-resize; display: none; }
+body.ov-resizing { cursor: ew-resize; user-select: none; }
+
+.thumb { position: relative; border: 3px solid transparent; border-radius: 9px;
+  overflow: hidden; cursor: pointer; background: var(--bg); aspect-ratio: 16 / 9;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .35); }
+.thumb svg { width: 100%; height: 100%; }
+.thumb.cur { outline: 3px solid #e0b070; outline-offset: -3px; }
+.thumb.sel { border-color: #6cb6ff; }
+.thumb .n { position: absolute; left: 8px; bottom: 6px; font: 600 13px system-ui, sans-serif;
+  color: #fff; background: rgba(0, 0, 0, .55); padding: 1px 8px; border-radius: 10px; }
+
+/* --- print / PDF: one fully-revealed slide per page ------------------------ */
+@media print {
+  html, body { overflow: visible; height: auto; }
+  #ov, #nav, #progress { display: none !important; }
+  .slide { display: flex !important; position: relative; inset: auto;
+    opacity: 1 !important; visibility: visible !important; transform: none !important;
+    width: 100%; height: 100vh; break-after: page; page-break-after: always; }
+  [data-step] { opacity: 1 !important; transform: none !important; }   /* final state per slide: */
+  [data-final="0"] { opacity: 0 !important; }                          /* …minus what is gone by then */
+}
+
+/* --- live shaders (`!shader`, svg/shader.js) ------------------------------- */
+.lmr-shader-box { width: 100%; height: 100%; position: relative; overflow: hidden; background: #05070d; }
+.lmr-shader-canvas, .lmr-shader-poster { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lmr-shader-error { position: absolute; inset: 0; margin: 0; padding: 1.2em; overflow: auto;
+  font: 14px/1.4 ui-monospace, monospace; color: #ffd0d0; background: #2a0d12; white-space: pre-wrap; }
+#lmr-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 50;
+  font: 600 15px system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.6); padding: 6px 14px;
+  border-radius: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; }
+#lmr-toast.on { opacity: 1; }

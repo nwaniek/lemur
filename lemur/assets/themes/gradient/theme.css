@@ -1,0 +1,46 @@
+/* gradient — a slate gradient background with a bold, restyled footer. A sample
+ * showing how a theme can set a slide background (--lmr-bg-image) and fully
+ * restyle the header/footer chrome (item 3). */
+:root {
+  --lmr-font: "Source Sans 3", "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --lmr-mono: "JetBrains Mono", "Fira Mono", Menlo, Consolas, monospace;
+  --lmr-font-size: 40px;
+
+  /* a gradient painted over the base color, on every slide */
+  --lmr-bg: #1a2233;
+  --lmr-bg-image: linear-gradient(135deg, #1a2233 0%, #24304a 55%, #2c1f3a 100%);
+  --lmr-letterbox: #05070a;
+
+  --lmr-ink: #e6e9f0;
+  --lmr-heading: #ffffff;
+  --lmr-heading-weight: 650;
+  --lmr-accent: #f0a05a;
+  --lmr-muted: #9aa5b8;
+  --lmr-rule: #3a4560;
+  --lmr-code-bg: #141b2b;
+  --lmr-image-frame: 1px solid #3a4560;
+  --lmr-badref-ink: #ffb3b3;
+  --lmr-badref-bg: #4a2020;
+
+  /* restyled chrome: a smaller, spaced-out, uppercase accent footer/header */
+  --lmr-chrome-size: 0.42em;
+  --lmr-chrome-ink: #f0a05a;
+  --lmr-chrome-weight: 600;
+  --lmr-chrome-spacing: 0.12em;
+  --lmr-chrome-transform: uppercase;
+  --lmr-chrome-rule: 1px solid #3a4560;
+
+  /* bright code tokens for the dark background */
+  --lmr-code-kw: #f0a05a;
+  --lmr-code-str: #8fce9b;
+  --lmr-code-comment: #6b7688;
+  --lmr-code-num: #c99ae0;
+  --lmr-code-fn: #7fd0e0;
+  --lmr-code-attr: #ebcb8b;
+  --lmr-code-type: #8fbcbb;
+  --lmr-code-hl-bg: rgba(240, 160, 90, 0.16);
+}
+.slide.cover h1 {
+  border-bottom: 3px solid var(--lmr-accent);
+  display: inline-block; padding-bottom: 0.1em;
+}

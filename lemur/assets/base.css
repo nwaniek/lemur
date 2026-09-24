@@ -1,0 +1,875 @@
+/* base.css — structural stylesheet for the lemur renderer.
+ *
+ * This file is theme-agnostic: it lays out the deck, the fixed-size stage,
+ * the activation (step) model, the arrow overlay, print pages, and the
+ * reduced-motion fallback. All *colors, fonts and spacing* are supplied by a
+ * theme file (themes/<name>/theme.css) through --lmr-* custom properties, so a
+ * restyle means editing a dozen variables, never these selectors.
+ *
+ * The build concatenates base.css + themes/<name>/theme.css into the output
+ * folder's slides.css (Plan.md Section 6). Keeping the structural rules here in
+ * one place fixes the old per-template duplication.
+ *
+ * Coordinate model (Plan.md Section 4.2/4.4/4.5):
+ *   - The stage is authored at a fixed design size (data-design-w/h on .deck,
+ *     mirrored as --design-w/--design-h px). Everything on a slide is laid out
+ *     in those "design pixels".
+ *   - runtime.js sets --scale on .deck; the stage is scaled by a single uniform
+ *     transform and centred, so a non-matching viewport letterboxes for free.
+ */
+
+/* -- bundled fonts (deterministic, cross-machine layout) ------------------- *
+ * The deck lays out in a fixed design box and scales it uniformly, so the
+ * result is only reproducible if the font *metrics* are identical everywhere.
+ * These OFL fonts are shipped inside the deck (copied to fonts/ by copy_fonts)
+ * and used ahead of any system font, so a slide wraps and sizes the same on
+ * every machine and browser (fixes Safari overflow / per-machine drift). They
+ * are variable (one file spans the whole weight axis — 400/650/700 all exact,
+ * no browser faux-bold). See fonts/README.md. */
+@font-face {
+  font-family: "Source Sans 3"; font-style: normal; font-weight: 200 900;
+  font-display: swap; src: url("fonts/source-sans-3-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Sans 3"; font-style: italic; font-weight: 200 900;
+  font-display: swap; src: url("fonts/source-sans-3-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4"; font-style: normal; font-weight: 200 900;
+  font-display: swap; src: url("fonts/source-serif-4-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4"; font-style: italic; font-weight: 200 900;
+  font-display: swap; src: url("fonts/source-serif-4-italic.woff2") format("woff2");
+}
+/* Libre Baskerville is a *static* family (no variable axis): exact 400 / 700,
+ * and only a 400 italic — there is no bold-italic face, so bold+italic text
+ * falls back to a synthesized slant. Journal's default serif. */
+@font-face {
+  font-family: "Libre Baskerville"; font-style: normal; font-weight: 400;
+  font-display: swap; src: url("fonts/libre-baskerville-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Baskerville"; font-style: italic; font-weight: 400;
+  font-display: swap; src: url("fonts/libre-baskerville-400-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Libre Baskerville"; font-style: normal; font-weight: 700;
+  font-display: swap; src: url("fonts/libre-baskerville-700-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: normal; font-weight: 100 800;
+  font-display: swap; src: url("fonts/jetbrains-mono-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: italic; font-weight: 100 800;
+  font-display: swap; src: url("fonts/jetbrains-mono-italic.woff2") format("woff2");
+}
+
+/* -- deck: fills the viewport, provides the letterbox bars ----------------- */
+
+html, body { margin: 0; height: 100%; }
+
+.deck {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--lmr-letterbox);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* default design size (Full HD, Plan.md D4); the emitter overrides via inline
+     --design-w/h when the deck declares a different aspect (e.g. 4:3) */
+  --design-w: 1920px;
+  --design-h: 1080px;
+}
+
+/* -- slides: only the current one is shown --------------------------------- */
+
+.slide {
+  display: none;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+/* Graceful degradation (Plan.md Section 5): without JS the runtime never adds
+   .js, so the first slide stays visible and its real DOM content (text + math
+   markup) is present — math is just untypeset. */
+.slide:first-of-type { display: flex; }
+/* Interactive: slides are stacked absolutely; only the current one is opaque.
+   Non-current slides stay laid out (visibility:hidden, NOT display:none) so
+   their arrows/print pages can be measured without ever showing them — no
+   flicker on print — and so a cross-fade can dissolve between two of them. */
+.deck.js .slide {
+  position: absolute; inset: 0; display: flex;
+  opacity: 0; visibility: hidden;
+}
+.deck.js .slide.is-current { opacity: 1; visibility: visible; }
+
+/* -- stage: the fixed design box, uniformly scaled by the runtime ---------- */
+
+.stage {
+  position: relative;
+  box-sizing: border-box;
+  /* the stage is a flex child of .slide; it must NOT shrink to the viewport,
+     or the design box collapses and content reflows. It stays at the design
+     size and only the transform scales it (Plan.md Section 4.2). */
+  flex: 0 0 auto;
+  width: var(--design-w);
+  height: var(--design-h);
+  /* content padding is independent of the chrome (item 6): --lmr-pad-x for the
+     sides and --lmr-pad-y for top+bottom, with --lmr-pad-top/--lmr-pad-bottom
+     to override either side (e.g. extra top clearance for a full-bleed header) */
+  padding: var(--lmr-pad-top)
+           var(--lmr-pad-x)
+           var(--lmr-pad-bottom);
+  transform: scale(var(--scale, 1));
+  transform-origin: center center;
+  color: var(--lmr-ink);
+  font-family: var(--lmr-font);
+  font-size: var(--lmr-font-size);
+  line-height: 1.4;
+  text-align: left;
+  overflow: hidden;
+}
+
+/* the content layer holding the title + body (and, appended at runtime, the
+   arrow overlay). Always a containing block, so its absolutely-positioned
+   descendants — annotation callouts and the arrow layer — anchor to it in every
+   state; under 'push' it carries the slide transform, so they travel with the
+   content and stay locked to their marks (arrows are measured in this frame). */
+.stage .stage-content { position: relative; }
+
+/* -- slide layers (Plan-DisplayModel §3.2): named, z-stacked children of the
+   stage, each its own swappable subtree. Back to front: background layer,
+   content (.stage-content), overlay (the runtime's .arrow-layer), chrome. ---- */
+
+/* The background layer: a real element (not a pseudo) so a theme can swap it
+   wholesale — replace it, or layer an image/gradient/pattern over the base
+   colour. It sits behind the content (z-index:-1), inherits the --lmr-bg*
+   tokens (so per-slide overrides still apply), is clipped by the stage's
+   overflow, and a 'push' can crossfade it between slides. */
+.stage .layer-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--lmr-bg);
+  background-image: var(--lmr-bg-image);
+  background-size: var(--lmr-bg-size);
+  background-position: var(--lmr-bg-position);
+}
+
+/* The chrome layer: header/footer/logo as one swappable subtree, filling the
+   stage. It never intercepts pointer events (its children are non-interactive),
+   and sits above the content + overlay so the bars are always visible. */
+.stage .layer-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+/* Content wider/taller than the design box must not bleed into neighbours
+   (Plan.md Section 11). We clip at the stage edge; in dev builds the runtime
+   adds .stage--overflow to flag it visibly rather than silently. */
+.stage.stage--overflow { outline: 3px dashed var(--lmr-overflow-warn); outline-offset: -3px; }
+
+/* -- typography and blocks (shape only; colours come from the theme) ------- */
+
+.stage h1, .stage h2, .stage h3, .stage h4 {
+  font-family: var(--lmr-heading-font);
+  color: var(--lmr-heading);
+  letter-spacing: var(--lmr-heading-spacing);
+  font-weight: var(--lmr-heading-weight);
+  margin: 0 0 0.6em;
+}
+.stage h2 {
+  font-size: var(--lmr-h2-size);
+  border-bottom: var(--lmr-heading-rule);
+  padding-bottom: 0.15em;
+}
+.stage h3 { font-size: var(--lmr-h3-size); }
+
+.stage p, .stage li { line-height: 1.45; }
+.stage ul, .stage ol { display: block; margin: 0.3em 0 0.3em 1.2em; }
+.stage li { margin: 0.25em 0; }
+
+.stage .lmr-math { margin: 0.4em 0; text-align: center; }
+
+/* a malformed equation: MathJax renders the offending source in a red error
+   box in place of the equation; outline the container so it is unmistakable,
+   and never blank the slide (Plan.md Section 11). */
+.stage mjx-container:has([data-mjx-error]) {
+  outline: 2px solid var(--lmr-error);
+  outline-offset: 4px; border-radius: 2px;
+}
+
+.stage pre.lmr-code {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.62em;
+  margin: 0.4em 0;
+  padding: 0.6em 0.8em;
+  overflow: auto;
+  border: 1px solid var(--lmr-rule);
+  border-radius: 4px;
+  background: var(--lmr-code-block-bg);
+}
+.stage code, .stage .lmr-code {
+  font-family: var(--lmr-mono);
+}
+.stage p code, .stage li code, .stage td code {
+  background: var(--lmr-code-bg); border-radius: 3px; padding: 0 0.2em;
+  font-size: 0.9em;
+}
+
+/* code lines: one span per line so ranges can be highlighted per step (item 5).
+   The active group's lines are emphasised and the rest dimmed. */
+.stage pre.lmr-code .cl {
+  display: block; margin: 0 -0.8em; padding: 0 0.8em;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+.stage pre.lmr-code .cl.cl-dim { opacity: 0.32; }
+.stage pre.lmr-code .cl.cl-hl {
+  background: var(--lmr-code-hl-bg);
+}
+
+/* highlight.js token colors (item 6), routed through tokens so themes adjust */
+.stage .hljs-keyword, .stage .hljs-built_in, .stage .hljs-literal {
+  color: var(--lmr-code-kw); }
+.stage .hljs-string, .stage .hljs-meta .hljs-string {
+  color: var(--lmr-code-str); }
+.stage .hljs-comment, .stage .hljs-quote {
+  color: var(--lmr-code-comment); font-style: italic; }
+.stage .hljs-number, .stage .hljs-symbol {
+  color: var(--lmr-code-num); }
+.stage .hljs-title, .stage .hljs-title.function_, .stage .hljs-section {
+  color: var(--lmr-code-fn); }
+.stage .hljs-attr, .stage .hljs-name, .stage .hljs-attribute {
+  color: var(--lmr-code-attr); }
+.stage .hljs-type, .stage .hljs-class .hljs-title {
+  color: var(--lmr-code-type); }
+
+.stage .lmr-table table { margin: 0.5em auto; font-size: 0.85em;
+  border-collapse: collapse; }
+.stage .lmr-table th { border-bottom: 2px solid var(--lmr-accent); }
+.stage .lmr-table td, .stage .lmr-table th { padding: 0.25em 0.7em; }
+.stage .lmr-table tr.lmr-sep-strong td { border-top: 2px solid var(--lmr-ink); }
+.stage .lmr-table tr.lmr-sep-light td { border-top: 1px solid var(--lmr-rule); }
+.stage .lmr-tabletitle { font-weight: 600; text-align: center; }
+.stage .lmr-table caption {
+  caption-side: bottom; font-size: 0.8em; color: var(--lmr-muted);
+  padding-top: 0.4em;
+}
+
+/* side-by-side columns (item 5): each grows by its relative width and aligns
+   vertically per its '!column top|center|bottom' setting */
+.stage .lmr-columns {
+  display: flex; align-items: flex-start;
+  gap: var(--lmr-column-gap); margin: 0.4em 0;
+}
+.stage .lmr-column { min-width: 0; }
+.stage .lmr-column.center { align-self: center; }
+.stage .lmr-column.bottom { align-self: flex-end; }
+/* drop the top margin of a column's first flowing element so columns align at
+   the top, whether or not that element is wrapped in a step (data-appear) */
+.stage .lmr-column > :first-child,
+.stage .lmr-column > .lmr-step:first-child > :first-child { margin-top: 0; }
+
+/* stacked overlays (item 4): every layer occupies the same grid cell, so they
+   overlap and the container reserves the largest layer's box — content after
+   the stack never jumps as layers swap. data-when gates visibility (and fades,
+   via item 3). Layers hidden with visibility:hidden still take their space. */
+.stage .lmr-stack { display: grid; margin: 0.4em 0; }
+.stage .lmr-stack > .lmr-layer { grid-area: 1 / 1; min-width: 0; }
+.stage .lmr-stack > .lmr-layer > :first-child,
+.stage .lmr-stack > .lmr-layer > .lmr-step:first-child > :first-child {
+  margin-top: 0;
+}
+
+/* The figure carries any explicit !width/!height and centres itself; content
+   never spills past the text column. Sizes are in design px / %, NOT viewport
+   units, so they scale with the transformed stage (item 5). Single- and
+   multi-layer images size identically. */
+.stage .lmr-figure {
+  text-align: center; margin: 0.5em auto; max-width: 100%;
+}
+.stage .lmr-figure img {
+  display: block; margin: 0 auto;
+  max-width: 100%; height: auto;
+  border: var(--lmr-image-frame); background: transparent;
+}
+/* no explicit size: a single image keeps its natural width but is capped to the
+   column and to a design-relative height, so a tall figure cannot overflow. The
+   cap targets the direct-child image only, never the width:100% overlay layers
+   (where a height cap would distort them). */
+.stage .lmr-figure:not(.lmr-sized) > img {
+  max-height: var(--lmr-figure-max-h);
+}
+/* explicit !width/!height: the figure width (a fraction of the text column,
+   like LaTeX's \includegraphics[width=0.85\textwidth]) drives the display and
+   the image fills it, upscaling if needed, aspect preserved (item 5) */
+.stage .lmr-figure.lmr-sized img { width: 100%; }
+/* multi-layer figure: the .lmr-overlay fills the figure and every layer fills
+   the overlay 100%, so the layers align exactly at any figure width (item 1) */
+.stage .lmr-overlay { position: relative; display: block; width: 100%; }
+.stage .lmr-overlay img { display: block; width: 100%; height: auto; }
+.stage .lmr-overlay img + img { position: absolute; inset: 0; }
+.stage .lmr-caption {
+  font-size: 0.7em; color: var(--lmr-muted); margin-top: 0.3em;
+}
+
+.stage a { color: var(--lmr-accent); }
+.stage .lmr-cite a { color: var(--lmr-accent); text-decoration: none; }
+.stage .lmr-bib { font-size: 0.75em; }
+.stage .lmr-badref {
+  color: var(--lmr-badref-ink);
+  background: var(--lmr-badref-bg);
+  border-radius: 3px; padding: 0 0.2em;
+}
+
+/* speaker notes are parsed but never shown in the interactive deck
+   (presenter view is a non-goal, Plan.md Section 2) */
+.stage aside.notes { display: none; }
+
+/* presentation chrome: header/footer bars + slide number, sitting in the
+   stage's padding zone (absolute, so they don't disturb content flow), scaled
+   and printed with the slide. */
+/* header/footer geometry is fully tokenised so a theme can move, resize or
+   restyle them (item 3): position, font, size, color, and the rule. */
+.stage .lmr-header, .stage .lmr-footer {
+  position: absolute;
+  left: var(--lmr-chrome-x);
+  right: var(--lmr-chrome-x);
+  font-size: var(--lmr-chrome-size);
+  font-family: var(--lmr-chrome-font);
+  font-weight: var(--lmr-chrome-weight);
+  letter-spacing: var(--lmr-chrome-spacing);
+  text-transform: var(--lmr-chrome-transform);
+  color: var(--lmr-chrome-ink);
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1em;
+  /* a theme can paint a full-bleed bar: set --lmr-chrome-x/-header-top/
+     -footer-bottom to 0 for edge-to-edge, --lmr-*-bg for the fill, and
+     --lmr-chrome-pad-x to keep the text off the edge while the bar bleeds out.
+     Content padding (--lmr-pad-x/y) stays independent (item 6). */
+  padding-left: var(--lmr-chrome-pad-x);
+  padding-right: var(--lmr-chrome-pad-x);
+}
+.stage .lmr-header {
+  top: var(--lmr-header-top);
+  border-bottom: var(--lmr-chrome-rule);
+  padding-bottom: 0.35em;
+  background: var(--lmr-header-bg);
+}
+.stage .lmr-footer {
+  bottom: var(--lmr-footer-bottom);
+  border-top: var(--lmr-chrome-rule);
+  padding-top: 0.35em;
+  background: var(--lmr-footer-bg);
+}
+.stage .lmr-pageno { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* corporate logo (item 6): sits in the stage's chrome zone, positioned by
+   tokens (default top-right corner). Emitted on content slides; '.plain' and
+   section dividers drop it. */
+.stage .lmr-logo {
+  position: absolute;
+  top: var(--lmr-logo-top);
+  right: var(--lmr-logo-right);
+  height: var(--lmr-logo-height);
+  width: auto; max-width: 30%; z-index: 6;
+}
+
+/* Per-slide styling below is scoped to ':is(.slide, .print-page, .overview-thumb)' because the
+   print path clones only the .stage into a .print-page that is given the slide's
+   variant/kind classes — so '.center'/'.middle'/'.plain'/cover/section render
+   identically on screen and on the frozen print pages (arrows are measured
+   against the on-screen layout, so the two must match). Themes still target
+   '.slide.<name>' for on-screen styling. */
+
+/* -- cover (title) slide --------------------------------------------------- */
+
+:is(.slide, .print-page, .overview-thumb).cover .stage { display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; }
+/* the cover/section content sits in .stage-content (so 'push' can slide it);
+   keep it a centred column within the flex-centred stage. */
+:is(.slide, .print-page, .overview-thumb).cover .stage-content,
+:is(.slide, .print-page, .overview-thumb).section .stage-content {
+  display: flex; flex-direction: column; align-items: center;
+}
+:is(.slide, .print-page, .overview-thumb).cover h1 { font-size: var(--lmr-h1-size); border: none; }
+:is(.slide, .print-page, .overview-thumb).cover .lmr-title-subtitle {
+  font-size: 0.85em; color: var(--lmr-muted); margin-top: -0.2em;
+}
+:is(.slide, .print-page, .overview-thumb).cover .lmr-byline { color: var(--lmr-muted); font-size: 0.7em; }
+:is(.slide, .print-page, .overview-thumb).cover .lmr-title-image img {
+  max-height: 390px; max-width: 80%;
+  border: var(--lmr-image-frame); background: transparent;
+}
+/* optional decorative rule under the title; a theme opts in (journal does) */
+:is(.slide, .print-page, .overview-thumb).cover .lmr-title-rule { display: none; }
+
+/* section-divider slide */
+:is(.slide, .print-page, .overview-thumb).section .stage { display: flex; align-items: center;
+  justify-content: center; text-align: center; }
+:is(.slide, .print-page, .overview-thumb).section h1 {
+  font-size: var(--lmr-section-size); color: var(--lmr-accent); border: none;
+}
+
+/* built-in per-slide styles, selected with '!slide Title .name'. Themes may
+   add their own (.slide.<name>) or override these; a style can even re-scope
+   tokens, e.g. '.slide.dark { --lmr-bg:#111; --lmr-ink:#eee }'. */
+:is(.slide, .print-page, .overview-thumb).plain .lmr-header,
+:is(.slide, .print-page, .overview-thumb).plain .lmr-footer,
+:is(.slide, .print-page, .overview-thumb).plain .lmr-logo { display: none; }
+:is(.slide, .print-page, .overview-thumb).fill .stage { padding: 0; }
+
+/* body-only alignment ('.center'/'.middle'): centre the content region below the
+   slide title, leaving the title and the (absolute) header/logo/footer put.
+   '.center' is horizontal (block flow); '.middle' is vertical and needs the body
+   to fill the stage, so it — and a 'fill' gap ('.has-fill') — turn the
+   stage/body into a flex column. '.stage-content' holds [title, .lmr-body]. */
+:is(.slide, .print-page, .overview-thumb).center .lmr-body { text-align: center; }
+:is(.slide, .print-page, .overview-thumb).middle .stage,
+:is(.slide, .print-page, .overview-thumb).has-fill .stage {
+  display: flex; flex-direction: column;
+}
+:is(.slide, .print-page, .overview-thumb).middle .stage-content,
+:is(.slide, .print-page, .overview-thumb).has-fill .stage-content {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+}
+:is(.slide, .print-page, .overview-thumb).middle .lmr-body,
+:is(.slide, .print-page, .overview-thumb).has-fill .lmr-body {
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+}
+:is(.slide, .print-page, .overview-thumb).middle .lmr-body { justify-content: center; }
+
+/* '!gap' vertical spacer: a fixed one by default, or 'fill' to grow and push
+   content apart (only meaningful inside the flex body a 'fill' gap switches on). */
+.stage .lmr-gap { flex: 0 0 auto; height: 1em; }
+.stage .lmr-gap.lmr-gap-fill { flex: 1 1 0; height: 0; min-height: 0; }
+
+/* -- semantic environments (theorem/proof/…) ------------------------------ */
+/* a neutral default: an accent rule, a bold capitalised label, an optional
+   italic title in parens, then the body. A theme restyles a kind via the
+   '.env-<kind>' class or by re-scoping '--lmr-env-rule'. */
+.stage .lmr-env {
+  margin: 0.6em 0;
+  padding: 0.1em 0 0.1em 0.9em;
+  border-left: 3px solid var(--lmr-env-rule);
+}
+.stage .lmr-env-kind {
+  font-weight: 700; text-transform: capitalize;
+  color: var(--lmr-env-rule);
+}
+.stage .lmr-env-title { font-style: italic; margin-left: 0.35em; }
+.stage .lmr-env-title::before { content: "("; }
+.stage .lmr-env-title::after { content: ")"; }
+.stage .lmr-env-head::after { content: "."; }
+.stage .lmr-env-body { margin-top: 0.15em; }
+.stage .lmr-env-body > :first-child { margin-top: 0; }
+.stage .lmr-env-body > :last-child { margin-bottom: 0; }
+/* proof reads quieter and ends with a QED tombstone; warning runs warm */
+.stage .env-proof { --lmr-env-rule: var(--lmr-muted); }
+.stage .env-proof .lmr-env-body > :last-child::after {
+  content: " \220E"; color: var(--lmr-muted);
+}
+.stage .env-warning { --lmr-env-rule: var(--lmr-warn); }
+
+/* -- inline emphasis + styled blocks (the '{style}' / '!style' attribute) -- */
+/* emphasis keywords apply unconditionally (unlike the step-gated '.is-hl.hl-*');
+   colour/background ride as inline styles. Custom '.class' names are the theme's
+   to define — these are just the built-ins both emitters understand. */
+.stage .bold { font-weight: 700; }
+.stage .italic { font-style: italic; }
+.stage .underline { text-decoration: underline; }
+.stage .strike { text-decoration: line-through; }
+.stage .accent { color: var(--lmr-accent); }   /* a built-in themed colour */
+.stage .lmr-style { margin: 0.6em 0; }
+.stage .lmr-style.center { text-align: center; }
+.stage .lmr-style.frame {
+  border: 1px solid var(--lmr-rule); border-radius: 6px; padding: 0.5em 0.8em;
+}
+.stage .lmr-style > :first-child { margin-top: 0; }
+.stage .lmr-style > :last-child { margin-bottom: 0; }
+
+/* -- activation (step) model (Plan.md Section 4.3) ------------------------- */
+
+/* data-appear: hidden until its step, then shown. data-when is the general
+   overlay spec (shown only while the step matches, so it can hide again). */
+.stage [data-appear], .stage [data-when] { visibility: hidden; }
+.stage [data-appear].is-visible, .stage [data-when].is-visible {
+  visibility: visible;
+}
+
+/* data-hl: highlight state accumulates; per-segment target colour in --hl.
+   One rule serves every highlighted segment (math or prose). */
+.stage [data-hl] { transition: color var(--lmr-hl-fade) ease; }
+/* colored segments set --hl; emphasis-only segments leave it unset so their
+   color is unchanged (item 4) */
+.stage .is-hl { color: var(--hl, currentColor); }
+/* step emphasis (item 4): applies only once .is-hl is on. bold/italic work on
+   prose spans; math subexpressions (SVG) emphasise via color instead. */
+.stage .is-hl.hl-bold { font-weight: 700; }
+.stage .is-hl.hl-italic { font-style: italic; }
+.stage .is-hl.hl-underline { text-decoration: underline; }
+.stage .is-hl.hl-strike { text-decoration: line-through; }
+
+/* -- arrow overlay (Plan.md Section 4.5) ----------------------------------- */
+
+.stage .arrow-layer {
+  /* fills its container (.stage-content) so it travels with the content under
+     'push'; its viewBox is set at measure time to the content box in design px,
+     so 1 user unit = 1 design px. overflow:visible lets an arrow's standoff draw
+     past the box; the stage still clips at its own edge. */
+  position: absolute; inset: 0;
+  pointer-events: none; overflow: visible; z-index: 5;
+}
+.stage .arrow-layer .arrow { visibility: hidden; }
+.stage .arrow-layer .arrow.is-visible { visibility: visible; }
+.stage .arrow-layer path.arrow-line {
+  fill: none;
+  stroke: var(--arrow-color, var(--lmr-accent));
+  stroke-width: 3.5;
+}
+/* !connect line-style variants (thin/thick/dashed). A dashed connector shows a
+   static dash pattern, so it opts out of the draw-on animation below. */
+.stage .arrow-layer .arrow.arrow-thin path.arrow-line { stroke-width: 2; }
+.stage .arrow-layer .arrow.arrow-thick path.arrow-line { stroke-width: 6; }
+.stage .arrow-layer .arrow.arrow-dashed.is-visible path.arrow-line {
+  stroke-dasharray: 7 6; animation: none;
+}
+/* connectors carry no visible content — the markers only feed the decorator */
+.lmr-connects { display: none; }
+/* annotation labels. In the base flow (before arrows are measured) they sit
+   below the equation; the runtime switches them to absolute placement in
+   design coordinates and draws arrows (M4) by adding .is-placed. */
+.stage .lmr-annotations {
+  display: flex; flex-wrap: wrap; gap: 0.15em 1.2em;
+  margin: 0.4em 0; align-items: baseline;
+}
+.stage .callout {
+  font-size: 0.6em;
+  font-style: italic;
+  color: var(--arrow-color, var(--lmr-accent));
+  white-space: nowrap;
+  max-width: 40%;
+}
+.stage .callout.is-placed { position: absolute; margin: 0; }
+
+/* draw-on effect for arrows (Plan.md Section 4.6): the resting state is a solid
+   line, so print and reduced-motion just show it. Only on screen, with motion
+   allowed, do newly-visible arrows animate from empty to full. */
+@keyframes lmr-draw {
+  from { stroke-dashoffset: var(--arrow-len, 1000); }
+  to   { stroke-dashoffset: 0; }
+}
+@media screen and (prefers-reduced-motion: no-preference) {
+  .stage .arrow-layer .arrow.is-visible path.arrow-line {
+    stroke-dasharray: var(--arrow-len, 1000);
+    stroke-dashoffset: 0;
+    animation: lmr-draw var(--lmr-draw-time) ease forwards;
+  }
+}
+
+/* -- transitions (Plan.md Section 4.6) ------------------------------------- */
+/* Two independent transitions: across slides (data-transition) and within a
+   slide as elements appear (data-step-transition). */
+
+/* across-slide: a true cross-fade. Slides are stacked (above), so animating
+   the opacity of the outgoing and incoming slides at once dissolves one into
+   the other. visibility transitions as a step, delayed for the outgoing slide
+   so it stays painted while it fades. */
+.deck.js[data-transition="fade"] .slide {
+  transition: opacity var(--lmr-fade-time) ease,
+              visibility var(--lmr-fade-time) linear;
+}
+
+/* across-slide: slide-in and push. Both park every slide by its position
+   relative to the current one — earlier slides off to the left (is-before),
+   later ones off to the right (is-after) — and show only the current slide and
+   the one being left (is-out). Navigating just re-parks them, so a move and its
+   exact reverse (stepping back) are one pure state change: no direction flag, no
+   cleanup timer, no ghost slide. Showing only those two means no third slide's
+   opaque background occludes the push crossfade. The off-screen slides are
+   clipped by the .deck overflow. Adapted from the index4 experiment. */
+.deck.js[data-transition="slide"] .slide,
+.deck.js[data-transition="push"] .slide { opacity: 1; }
+.deck.js[data-transition="slide"] .slide.is-current,
+.deck.js[data-transition="slide"] .slide.is-out,
+.deck.js[data-transition="push"] .slide.is-current,
+.deck.js[data-transition="push"] .slide.is-out { visibility: visible; }
+
+/* slide: the whole frame travels one viewport width (100% of .slide). */
+.deck.js[data-transition="slide"] .slide {
+  transition: transform var(--lmr-slide-time) cubic-bezier(0.4, 0, 0.2, 1);
+}
+.deck.js[data-transition="slide"] .slide.is-before { transform: translateX(-100%); }
+.deck.js[data-transition="slide"] .slide.is-current { transform: translateX(0); }
+.deck.js[data-transition="slide"] .slide.is-after { transform: translateX(100%); }
+
+/* push: only .stage-content travels, a full stage width (--design-w, NOT 100%
+   of its own box — so a narrow centred cover clears the frame exactly like a
+   full-width content slide; the width-relative travel was the old cover bug).
+   The chrome (header/footer/logo) stays put and only the current slide's shows,
+   so the fixed bars never double up. The incoming slide sits on top (z-index)
+   and its background layer crossfades in over the outgoing one (lmr-bg-in), so
+   backgrounds of different designs dissolve into each other instead of swapping
+   in one frame. Under push the content's transform makes .stage-content a
+   containing block, so the callouts and arrow overlay inside it travel with the
+   content and stay locked to their marks. */
+.deck.js[data-transition="push"] .slide:not(.is-current) .lmr-header,
+.deck.js[data-transition="push"] .slide:not(.is-current) .lmr-footer,
+.deck.js[data-transition="push"] .slide:not(.is-current) .lmr-logo {
+  visibility: hidden;
+}
+.deck.js[data-transition="push"] .slide.is-current { z-index: 2; }
+.deck.js[data-transition="push"] .slide.is-current .layer-bg {
+  animation: lmr-bg-in var(--lmr-slide-time) cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes lmr-bg-in { from { opacity: 0; } to { opacity: 1; } }
+.deck.js[data-transition="push"] .stage-content {
+  transition: transform var(--lmr-slide-time) cubic-bezier(0.4, 0, 0.2, 1);
+}
+.deck.js[data-transition="push"] .slide.is-before .stage-content {
+  transform: translateX(calc(-1 * var(--design-w)));
+}
+.deck.js[data-transition="push"] .slide.is-current .stage-content { transform: none; }
+.deck.js[data-transition="push"] .slide.is-after .stage-content {
+  transform: translateX(var(--design-w));
+}
+
+/* a jump of more than one slide cuts instead of animating: the runtime adds
+   .no-anim for one reflow while it re-parks the slides. After the slide/push
+   blocks so it wins at equal specificity. */
+.deck.js.no-anim .slide,
+.deck.js.no-anim .stage-content { transition: none; }
+
+/* within-slide: elements fade in (fade) or rise from below (rise) as they
+   appear, and play the SAME motion in reverse when they hide (stepping back).
+   These are css transitions, not one-way animations, so the '!pause'/'+' path
+   (data-appear) and the overlay path (data-when: '!when', '+<spec>', stack
+   layers) animate both directions. 'visibility' is transitioned with a delay on
+   the way out (the hidden state below) so the element stays painted while it
+   fades/sinks, then hides; it flips immediately on the way in (.is-visible). */
+.deck.js[data-step-transition="fade"] .stage [data-appear],
+.deck.js[data-step-transition="fade"] .stage [data-when] {
+  opacity: 0;
+  transition: opacity var(--lmr-step-fade-time) ease,
+              visibility 0s var(--lmr-step-fade-time);
+}
+.deck.js[data-step-transition="fade"] .stage [data-appear].is-visible,
+.deck.js[data-step-transition="fade"] .stage [data-when].is-visible {
+  opacity: 1;
+  transition: opacity var(--lmr-step-fade-time) ease, visibility 0s;
+}
+.deck.js[data-step-transition="rise"] .stage [data-appear],
+.deck.js[data-step-transition="rise"] .stage [data-when] {
+  opacity: 0; transform: translateY(12px);
+  transition: opacity var(--lmr-step-rise-time) ease,
+              transform var(--lmr-step-rise-time) ease,
+              visibility 0s var(--lmr-step-rise-time);
+}
+.deck.js[data-step-transition="rise"] .stage [data-appear].is-visible,
+.deck.js[data-step-transition="rise"] .stage [data-when].is-visible {
+  opacity: 1; transform: translateY(0);
+  transition: opacity var(--lmr-step-rise-time) ease,
+              transform var(--lmr-step-rise-time) ease, visibility 0s;
+}
+
+/* On entering a DIFFERENT slide the runtime adds .no-step-anim for one reflow
+   so the destination's step state snaps into place instead of animating: the
+   step reveals (fade/rise) and highlight colour are for within-slide stepping
+   only. Without it, a slide re-entered after an earlier visit — e.g. jumping
+   back via the overview, then stepping forward — flashes its stale reveals as
+   they fade out. After the step-transition blocks so it wins at equal
+   specificity (mirrors .no-anim's cut of the slide transform for jumps). */
+.deck.js.no-step-anim .stage [data-appear],
+.deck.js.no-step-anim .stage [data-when],
+.deck.js.no-step-anim .stage [data-hl] {
+  transition: none !important;
+}
+
+/* -- reduced motion: disable every animation/transition ------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .stage [data-hl],
+  .deck.js[data-transition="fade"] .slide,
+  .deck.js[data-transition="slide"] .slide,
+  .deck.js[data-transition="push"] .stage-content,
+  .deck.js[data-transition="push"] .slide.is-current .layer-bg,
+  .deck.js[data-step-transition="fade"] .stage [data-appear],
+  .deck.js[data-step-transition="fade"] .stage [data-when],
+  .deck.js[data-step-transition="rise"] .stage [data-appear],
+  .deck.js[data-step-transition="rise"] .stage [data-when],
+  .stage .arrow-layer .arrow.is-visible path.arrow-line {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* -- navigation wedges (presenter UI: display-contract names, not scaled,
+   not printed) ------------------------------------------------------------ */
+
+.deck-nav {
+  position: fixed; right: 20px; bottom: 16px; z-index: 30;
+  display: flex; gap: 8px; opacity: 0.4; transition: opacity 0.2s ease;
+}
+.deck-nav:hover { opacity: 1; }
+.deck-nav-btn {
+  border: 0; cursor: pointer;
+  font-size: 20px; line-height: 1; padding: 6px 9px; border-radius: 6px;
+  background: var(--lmr-nav-bg); color: var(--lmr-nav-ink);
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.deck-nav-btn:hover { background: var(--lmr-nav-bg-hover); }
+.deck-nav.at-start .deck-nav-prev, .deck-nav.at-end .deck-nav-next {
+  opacity: 0.25; pointer-events: none;
+}
+/* cue Next in the accent color when it uncovers more on the current slide */
+.deck-nav[data-more="step"] .deck-nav-next { background: var(--lmr-accent); }
+@media print { .deck-nav { display: none; } }
+
+/* -- progress bar (presenter UI: a thin bar spanning the deck; the presenter
+   creates it only when the deck has data-progress, and sets its scaleX from
+   the deck position. Off entirely otherwise) ------------------------------ */
+
+.deck-progress {
+  position: fixed; left: 0; right: 0;
+  height: var(--lmr-progress-height);
+  transform: scaleX(0); transform-origin: left center;
+  background: var(--lmr-progress);
+  opacity: var(--lmr-progress-opacity);      /* mild by default */
+  z-index: 40; pointer-events: none;
+  transition: transform 0.3s ease;
+}
+.deck-progress[data-pos="top"] { top: 0; }
+.deck-progress[data-pos="bottom"] { bottom: 0; }
+@media print { .deck-progress { display: none; } }
+
+/* -- slide overview (presenter UI: a frozen-projection plane, built by the
+   runtime, holding one thumbnail per slide at its final step). Two layouts on
+   the same nodes: '.is-grid' (modal Slide Sorter) and '.is-sidebar' (PDF-style
+   dock). Each thumb is a cloned .stage scaled by --thumb-scale (design→thumb),
+   set by the runtime from the rendered width. See Plan-SlideOverview.md. ----- */
+
+/* --sidebar-w is shared by the sidebar plane and the docked deck (siblings), so
+   it lives on :root where both can read it (the runtime overrides it when the
+   gutter is dragged); the thumb width is overview-only. */
+:root { --sidebar-w: 300px; }
+.deck-overview {
+  position: fixed; z-index: 50; box-sizing: border-box;
+  --overview-thumb-w: clamp(220px, 24vw, 360px);
+}
+.deck-overview[hidden] { display: none; }
+
+/* modal grid: a full-viewport translucent overlay, scroll on overflow */
+.deck-overview.is-grid {
+  inset: 0;
+  background: var(--lmr-bg);
+  background: color-mix(in srgb, var(--lmr-bg) 92%, transparent);
+  backdrop-filter: blur(2px);
+}
+.deck-overview.is-grid .deck-overview-grid {
+  display: grid; gap: 1rem; padding: 1.2rem; max-height: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(var(--overview-thumb-w), 1fr));
+  overflow-y: auto; overscroll-behavior: contain;
+}
+
+/* docked sidebar: a narrow left strip; the deck shifts right (.deck.is-docked) */
+.deck-overview.is-sidebar {
+  inset: 0 auto 0 0; width: var(--sidebar-w);
+  background: var(--lmr-bg);
+  border-right: 1px solid var(--lmr-rule);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+.deck-overview.is-sidebar .deck-overview-grid {
+  display: grid; gap: 0.6rem; padding: 0.6rem; grid-template-columns: 1fr;
+  height: 100%; overflow-y: auto; overscroll-behavior: contain;
+}
+
+/* drag handle straddling the sidebar's right edge to resize the gutter */
+.deck-overview-resizer { display: none; }
+.deck-overview.is-sidebar .deck-overview-resizer {
+  display: block; position: absolute; top: 0; bottom: 0; right: -3px;
+  width: 7px; cursor: ew-resize; z-index: 1; touch-action: none;
+}
+.deck-overview.is-sidebar .deck-overview-resizer::before {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 3px; width: 2px;
+  background: transparent; transition: background 0.12s ease;
+}
+.deck-overview.is-sidebar .deck-overview-resizer:hover::before,
+body.lmr-col-resizing .deck-overview-resizer::before {
+  background: var(--lmr-accent);
+}
+body.lmr-col-resizing { cursor: ew-resize; user-select: none; }
+
+/* a thumbnail = a button wrapping the scaled clone + a caption */
+.overview-thumb {
+  display: block; width: 100%; padding: 0; border: 0; cursor: pointer;
+  background: none; text-align: left; font: inherit; color: inherit;
+}
+.overview-thumb-stage {
+  position: relative; width: 100%; aspect-ratio: var(--aspect, 1.777);
+  overflow: hidden; background: var(--lmr-bg);
+  border: 1px solid var(--lmr-rule); border-radius: 4px;
+}
+.overview-thumb-stage > .stage {
+  position: absolute; top: 0; left: 0;
+  transform-origin: top left; transform: scale(var(--thumb-scale, 0.2));
+}
+.overview-thumb-cap {
+  font-size: 0.75rem; color: var(--lmr-muted); margin-top: 0.25em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.overview-thumb.is-current .overview-thumb-stage { outline: 3px solid var(--lmr-accent); }
+.overview-thumb.is-selected .overview-thumb-stage,
+.overview-thumb:focus-visible .overview-thumb-stage {
+  outline: 3px solid var(--lmr-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lmr-accent) 30%, transparent);
+}
+.overview-thumb:focus { outline: none; }   /* the visible ring is on the box */
+
+/* the live deck: dimmed under the modal grid, shifted+narrowed beside the dock */
+.deck.is-gridded { filter: blur(1px) brightness(0.55); }
+.deck.is-docked { left: var(--sidebar-w); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-overview.is-grid, .deck-overview.is-sidebar { animation: lmr-overview-in 0.18s ease; }
+}
+@keyframes lmr-overview-in { from { opacity: 0; } to { opacity: 1; } }
+@media print { .deck-overview { display: none !important; } }
+
+/* -- print / PDF (Plan.md Section 4.7) ------------------------------------- */
+
+/* the runtime fills .print-root with one frozen .print-page per cumulative
+   step (each wrapping a cloned .stage). Hidden on screen. */
+.print-root { display: none; }
+
+@media print {
+  .deck { display: none; }             /* hide the interactive stage */
+  .print-root { display: block; }      /* show the frozen pages */
+
+  /* @page size is injected by the emitter to match the design box (it cannot
+     read a css var); .print-root carries --design-w/h from the runtime */
+  .print-page {
+    width: var(--design-w); height: var(--design-h);
+    position: relative;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  /* a break *before* every page but the first yields exactly N pages with no
+     trailing blank (which a break-after on the last would leave) */
+  .print-page + .print-page { break-before: page; }
+  /* the frozen page holds a cloned .stage; print it at design size with no
+     transform, so the scale factor is 1 and the arrow coordinate math is the
+     identity (Plan.md Section 4.7) */
+  .print-page > .stage {
+    transform: none;
+    width: var(--design-w); height: var(--design-h);
+  }
+  /* dark slides print dark */
+  * { print-color-adjust: exact; }
+}

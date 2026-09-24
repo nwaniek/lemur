@@ -1,0 +1,15 @@
+{
+  "name": "lemur-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-contained test harness for the lemur slide renderer (render/runtime.js + built decks). Lives outside the main project: the renderer and parser ship no dependencies — jsdom and puppeteer-core are dev-only, needed only to run these tests. Run from this folder: `npm install` then `npm test` (needs a system Chrome for the integration tests; set $CHROME if it is not on the default path). The Python parser/emitter tests are separate: `python3 -m unittest discover -s tests/python` from the repo root.",
+  "scripts": {
+    "test:unit": "node --test 'unit/**/*.test.mjs'",
+    "test:integration": "node --test 'integration/**/*.test.mjs'",
+    "test": "node --test 'unit/**/*.test.mjs' 'integration/**/*.test.mjs'"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0",
+    "puppeteer-core": "^23.0.0"
+  }
+}

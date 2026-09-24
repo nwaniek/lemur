@@ -1,0 +1,14 @@
+%% Tables: columns measured from content, per-column alignment, a caption.
+%%   lmr2svg examples/tables/deck.lmr -o tables.html
+!title Tables
+
+!slide A measured table
+
+!table Message schedule ^sched
+!cols step[c], message, "value at $x=-1$"[r] | "value at $x=+1$"[r]
+!caption Columns size to content and centre as a block; cells may hold maths.
+
+	1 , $\mu_{x_1\to f}$ , 0.5 | 0.5
+	2 , $\mu_{f\to x_2}$ , ?   | ?
+	---
+	3 , marginal $p(x_2)$ , ? | ?

@@ -1,0 +1,33 @@
+/* dark — dark slate for dim lecture halls, cyan accent. */
+:root {
+  --lmr-font: "Source Sans 3", "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --lmr-mono: "JetBrains Mono", "Fira Mono", Menlo, Consolas, monospace;
+  --lmr-font-size: 40px;
+  --lmr-bg: #14181e;
+  --lmr-letterbox: #05070a;
+  --lmr-ink: #d8dee9;
+  --lmr-heading: #eceff4;
+  --lmr-heading-weight: 650;
+  --lmr-accent: #7fb8cc;
+  --lmr-muted: #9aa5b1;
+  --lmr-rule: #3b4252;
+  --lmr-code-bg: #2e3440;
+  --lmr-image-frame: 1px solid #3b4252;
+  --lmr-badref-ink: #ffb3b3;
+  --lmr-badref-bg: #4a2020;
+  /* bright code tokens for the dark code background (Nord-ish) */
+  --lmr-code-kw: #81a1c1;
+  --lmr-code-str: #a3be8c;
+  --lmr-code-comment: #6b7688;
+  --lmr-code-num: #b48ead;
+  --lmr-code-fn: #88c0d0;
+  --lmr-code-attr: #ebcb8b;
+  --lmr-code-type: #8fbcbb;
+  --lmr-code-hl-bg: rgba(136, 192, 208, 0.16);
+}
+/* dark-specific: brighter separator, underlined cover title */
+.stage .lmr-table tr.lmr-sep-strong td { border-top: 2px solid #9aa5b1; }
+.slide.cover h1 {
+  border-bottom: 3px solid var(--lmr-accent);
+  display: inline-block; padding-bottom: 0.1em;
+}

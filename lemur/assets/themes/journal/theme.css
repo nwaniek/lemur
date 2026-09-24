@@ -1,0 +1,30 @@
+/* journal — serif on a warm paper tone, burgundy accent. */
+:root {
+  --lmr-font: "Source Serif 4", "Libre Baskerville", Georgia, "Times New Roman", serif;
+  --lmr-heading-font: "Source Serif 4", "Libre Baskerville", Georgia, "Times New Roman", serif;
+  --lmr-mono: "JetBrains Mono", "Fira Mono", Menlo, Consolas, monospace;
+  --lmr-font-size: 37px;
+  /* Libre Baskerville ships only 400/700 (no semibold), so 600 resolves to the
+   * real 700 face — deterministic, just heavier than a true 600. */
+  --lmr-heading-weight: 600;
+  --lmr-heading-spacing: 0.005em;
+  --lmr-bg: #faf8f4;
+  --lmr-letterbox: #26221c;
+  --lmr-ink: #1d1d1b;
+  --lmr-heading: #1d1d1b;
+  --lmr-accent: #8a2f2f;
+  --lmr-muted: #6b675f;
+  --lmr-rule: #d8d3c8;
+  --lmr-code-bg: #f1eee7;
+  --lmr-heading-rule: 1px solid #1d1d1b;
+  --lmr-image-frame: 1px solid #d8d3c8;
+}
+/* journal-specific cover treatment */
+.slide.cover h1 { font-size: 1.6em; }
+.slide.cover .lmr-byline {
+  letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.55em;
+}
+.slide.cover .lmr-title-rule {
+  display: block; width: 30%; margin: 0.5em auto; border: 0;
+  border-top: 2px solid var(--lmr-accent);
+}

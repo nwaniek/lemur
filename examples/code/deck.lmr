@@ -1,0 +1,26 @@
+%% Code blocks: syntax highlighting and per-step line highlighting.
+%%   lmr2svg examples/code/deck.lmr -o code.html
+!title Code
+
+!slide A highlighted block
+
+Code is syntax-highlighted at build time (pygments -> theme palette):
+
+:: python
+	def sum_product(node, incoming):
+	    msg = node.factor
+	    for m in incoming:
+	        msg = msg * m
+	    return normalize(msg)
+
+!slide Highlighting by step
+
+The bracket after the language highlights lines on the given steps — group 1 on
+step 1, lines 4--5 on step 2 (non-active lines dim):
+
+:: python[1|4-5]
+	def sum_product(node, incoming):
+	    msg = node.factor
+	    for m in incoming:
+	        msg = msg * m
+	    return normalize(msg)

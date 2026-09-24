@@ -1,0 +1,26 @@
+%% Inline formatting and smart typography.
+%%   lmr2svg examples/formatting/deck.lmr -o formatting.html
+!title Text formatting
+
+!slide Inline styles
+
+The four doubled markers: **bold**, __italic__, ~~strikethrough~~, ++underline++.
+
+They compose: **__bold italic__**, and each has a class fallback for use with
+other attributes, e.g. [important]{.bold #c0392b} (bold + red).
+
+!slide Spans and smart typography
+
+A span carries a `{…}` attribute: [a colour]{#1c6fb0}, [a tint]{bg:#dde8ff},
+[a named class]{.bold}. It is *not* a formatting language — only names and hints.
+
+Smart typography educates plain ASCII on every prose run: en dash (pages 3--5),
+em dash (asides---like this), ellipsis (and so on...), and quotes that curl by
+context ("quoted", don't, the '90s). Code and $math$ are left verbatim.
+
+!slide Styled blocks
+
+!style[.center .frame bg:#f5f7ff]
+	`!style[.frame bg:…]` wraps a whole block in a rounded, tinted panel.
+
+	It can hold any content, including display maths: $E = mc^2$.

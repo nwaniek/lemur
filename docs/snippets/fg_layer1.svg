@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 260" width="640" height="260">
+  <!-- variable nodes (circles) -->
+  <g fill="#ffffff" stroke="#333333" stroke-width="2.5">
+    <circle cx="80"  cy="130" r="26"/>
+    <circle cx="320" cy="60"  r="26"/>
+    <circle cx="320" cy="200" r="26"/>
+    <circle cx="560" cy="130" r="26"/>
+  </g>
+  <!-- factor nodes (squares) -->
+  <g fill="#2e5e6e" stroke="none">
+    <rect x="182" y="112" width="36" height="36"/>
+    <rect x="422" y="112" width="36" height="36"/>
+  </g>
+  <g font-family="Georgia, serif" font-size="22" font-style="italic" fill="#333333" text-anchor="middle">
+    <text x="80"  y="138">x₁</text>
+    <text x="320" y="68">x₂</text>
+    <text x="320" y="208">x₃</text>
+    <text x="560" y="138">x₄</text>
+  </g>
+  <g font-family="Georgia, serif" font-size="20" font-style="italic" fill="#ffffff" text-anchor="middle">
+    <text x="200" y="137">f</text>
+    <text x="440" y="137">g</text>
+  </g>
+</svg>

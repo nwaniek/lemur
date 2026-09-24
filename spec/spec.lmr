@@ -1,0 +1,707 @@
+# What is LMR/lemur, why does it exist?
+
+.lmr is short for lemur and originally had a longer explanation for its name,
+but essentially it stands for a light markup language that is inspired primarily
+by reStructuredText, Markdown, and LaTeX. I developed it simply because I mostly
+like reStructuredText except for the headers, and started writing in a 'reduced'
+variant of it. I also wanted to have a bit more flexibility in expressing
+tables, in-line math, etc. that goes beyond Markdown. Using LaTeX all the way
+was also too exhausting. I thus set out to find a minimal set of things that
+make me happy and, importantly, that fit into my head. 
+
+Also, lemurs are cute.
+
+
+## Version, Stability, Language Specification ^version
+
+Version 0.0.3
+
+What? This sounds very unstable! -- Yes, lmr is young. It evolves along my
+daily use, so I wouldn't call it particularly stable yet. That said, the things
+declared in this document are what I use most of the time and have settled on.
+I'm open for suggestions, as long as they are lightweight but allow some
+flexibility.
+
+This document is the specification: there is no separate standard beyond it.
+lemur is developed jointly with its reference implementation, and the text below
+refers to its two halves. The __parser__ reads lemur and produces a neutral
+document tree (the AST, whose exact shape is given by `spec/ast.schema.json`).
+An __emitter__ turns that tree into something to look at -- for instance a
+slide deck. The parser decides what a document __means__; an emitter decides how
+it __looks__, so the language never says "pixel" or "font".
+
+
+## Design Philosophy ^philosophy
+
+The design philosophy behind lemur is rather simple: It needs to fit into my
+head, and ideally uses keys that I have easily available on a keyboard. Also, I
+rarely start a new line with `!` or `::`, so let's exploit this.
+
+
+## Comments ^comments
+
+A line whose first non-whitespace characters are `%%` is a comment and will be
+ignored entirely. I rarely start a line with `%%`, and it is close enough to
+LaTeX's `%` to feel familiar. Comments work almost everywhere, including
+between the rows of a table or between the lines of a paragraph (the paragraph
+simply continues). The one exception are the bodies of code blocks: they are
+verbatim, so a `%%` in there stays what it is. This is on purpose, because
+`%%` is meaningful in languages such as Erlang or MATLAB.
+
+If a line in running text really needs to start with a literal `%%`, escape it
+as `\%%`.
+
+
+## Indentation ^indentation
+
+Indentation in lemur is structural, but lemur does not fix a tab width and
+does not care whether you indent with tabs or spaces. Instead, the first line
+of a block body defines the indentation of that block: its exact leading
+whitespace must appear at the start of every following line of the same block.
+Deeper indentation on top of that prefix is content and is preserved, which is
+what you want for nested code. A line that is indented but does not start with
+the block's prefix is an error, since it is almost certainly a typo.
+
+This means you can use a tab in one block and three spaces in the next, and
+nobody has to win a "4 vs 8" debate. It also means that a code snippet should
+start at its shallowest line; a block whose first line is deeper than a later
+line is rejected.
+
+
+## Special Keywords ^keywords
+
+The following are not really special keywords of lmr, but I use them often
+enough that an editor's syntax highlighting for lemur should make them stand
+out.
+
+FIXME
+TODO
+NOTE
+
+
+## How to use tables ^tables
+
+Tables are declared by using a `!table` statement which needs to be the first on
+a line (except preceding whitespace), followed by an optional human readable
+title of the table, followed by an optional reference (see @references further
+below).
+
+That means that the following lines all declare a new table
+
+:: lemur
+
+	!table
+	!table human readable table name
+	!table some title ^table_ref
+	!table ^tab_ref
+
+The first line simply tells that there's a table.
+The second line declares a table with some table name
+The third line declares a table with a human readable name and a reference
+The fourth line declares a table without a title, but with a reference
+
+The next part of declaring a table is in specifying columns and their names.
+This also includes specifying column separators, and optionally an alignment
+attribute for each column. Examples might help:
+
+:: lemur
+
+	!cols First, Second, Third 
+	!cols First, Second; Third | Fourth
+	!cols First[l], Second[r] | Third[c]
+	!cols "Long header, with comma and escaped \" quotes"[c], "Second[yadda]"[r] 
+
+The first row introduces three columns, separated by `,`.
+The second row introduces four columns with separators `,`, `;`, and `|`.
+The third line adds alignment indicators in the square brackets, which are one
+of `l` for left alignment, `r` for right alignment, and `c` for center
+alignment.
+
+The separator is the author's choice: __any__ punctuation character works, not
+just `,`, `;` and `|` — `!cols A & B & C` or `!cols A / B / C` are equally
+valid. Only alphanumerics and spaces count as part of a name, so a header that
+itself contains punctuation (a comma, an `&`, parentheses, a hyphen, …) must be
+surrounded by `""`.
+
+The fourth line shows exactly this: lmr lets you surround a column name with
+`""`.  Thereby it's possible to use separators (and any other punctuation)
+within a column name, and it's easier to handle whitespace, or square brackets.
+To use `"` within such a header definition, simply escape it using the `\`
+symbol, i.e. `\"` as on the fourth line.
+
+Then, there's also the possibility to add a caption to a table. This is done via
+
+:: lemur
+
+	!caption Here goes a long caption...
+
+You can also rule off groups of rows: a line of `===` draws a strong separator
+and a line of `---` a light one, in between the data rows.
+
+To drop the heading row entirely, add `!noheader` to the table. The `!cols`
+declaration is still required -- it defines the columns, their separators and
+their alignment -- but its names are not rendered. Give bare alignments (or
+empty names) when you have nothing to head the columns with:
+
+:: lemur
+
+	!table
+	!cols [l], [r]
+	!noheader
+
+		Alice , 30
+		Bob   , 25
+
+A cell may also span multiple lines: write `\n` wherever you want a manual line
+break. It works in any prose run too, and a literal backslash-n is written
+`\\n`.
+
+:: lemur
+
+	!cols Name, Notes
+
+		Alice , first line \n second line
+
+A note on how rows are split: the separators declared in `!cols` are searched
+in the same order within each data row. This is exactly why the separator is
+the author's choice: pick separators that do not appear inside your cells. If
+a cell does contain one (a comma in prose, a `|` in math), the row mis-splits,
+and the interpreter warns whenever the number of cells in a row does not match
+the number of declared columns.
+
+Putting all together, the following is an example of table.
+
+:: lemur
+
+	!table my-table ^table_ref
+	!cols Name, Age[r], Country[c] | "something else"
+	!caption Here goes a longer, optional caption of the table. This can span
+	multiple lines, but the multiple lines are not allowed to contain empty lines in
+	between. Otherwise it'll require more syntax, which I try to avoid.
+
+		Alice   , 30 , USA      | yes 
+		===
+		Bob     , 25 , Canada   | no
+		Charlie , 35 , UK       | yes
+		---
+		Steve   , 27 , Denmark  | yes
+
+
+## Inline Math ^inline_math
+
+I need math, often in some inline form, so we simply adopt LaTeX inline math
+with a single `$`: $\sum_{i=1}^{10}{i^2}$. This way, math from existing LaTeX
+documents can be copied over for free. The price is that a literal dollar sign
+in running text must be escaped as `\$`, e.g. "this costs \$5". Inside math
+mode, `\$` stays what it is in TeX.
+
+`$$` is not a lemur construct. The parser warns when it encounters `$$` or an
+odd number of unescaped `$` on a line, which catches most forgotten escapes.
+Note that an even number of unescaped currency dollars ("between $5 and $6")
+cannot be detected in principle and will be read as math, so escape your
+currencies.
+
+For longer math, use a [display math block]@display_math.
+
+
+## Display Math ^display_math
+
+A `:: math` block holds display math: its indented body is LaTeX, exactly what
+you would put between `\[` and `\]`.
+
+:: lemur
+
+	:: math ^bayes
+		p(\theta \mid x) = \frac{p(x \mid \theta)\, p(\theta)}{p(x)}
+
+Several rows go in one block: write `\\` between rows and `&` at the alignment
+points, and the rows are aligned. The top-level LaTeX display environments
+(`align`, `gather`, `equation`, ...) may also be pasted in as they are.
+Equation numbering is not part of lemur; give a block a `^ref` to point at it.
+
+Parts of an equation can be named with `\mk{name}{...}` so they can be
+coloured and pointed at (see @highlight).
+
+
+## Formatting ^formatting
+
+`this` was a code example.
+
+Some text where **this** is bold, __this__ is italic, ~~this~~ is struck
+through, and ++this++ is underlined.
+
+Bold italic: **__bold italic__**
+Italic bold: __**italic bold**__
+
+Four doubled markers, chosen so nothing in ordinary prose triggers by accident:
+`**bold**`, `__italic__`, `~~strikethrough~~`, `++underline++`. Each also has a
+style-class fallback — `.bold`/`.italic`/`.strike`/`.underline`, which are handy
+when composing with other attributes (`[x]{.underline #c00}`). (Underline
+collides with `C++`, so you have to code-span it: `` `C++` `` or use an escape
+such as C\++)
+
+Smart typography. On every prose run (never inside `code`, `$math$`, or a URL —
+those are lifted out first), straight ASCII is educated to real Unicode: `--`
+becomes an en dash (ranges: pages 3--5), `---` an em dash (asides---like this),
+`...` an ellipsis, and straight quotes/apostrophes curl by context ("quotes",
+don't, the '90s).
+
+Escaping. A backslash forces the next special character literal — `\"` a
+straight quote, `\--` a plain double hyphen, and likewise `\*`, `` \` ``, `\@`,
+`\[`, `\$`. (A `\` before an ordinary character is just a backslash.) A `code`
+span is never touched either, so `--flag` inside backticks also stays verbatim.
+
+Styling. Beyond `**`/`__`/`~~`, a span can carry a `{…}` **style attribute** with
+one rule used *everywhere*: `.name` is a named style (a built-in like `.bold`/
+`.italic`/`.underline`/`.strike`/`.center`, or your own `.yeehaa` that a theme
+or template defines), `#rrggbb` (or a css colour name) is a foreground colour,
+and `bg:#eef` a background. So `[word]{.bold #c0392b}` is
+bold and red, `[word]{.accent}` uses a themed class. It composes with the other
+span suffixes — `[key]{.accent .bold}^m<2->` is a styled, named mark that
+appears at step 2. This is deliberately **not** a formatting language: a span
+carries only style names and colour hints, and the emitter decides how they
+actually look.
+
+Styled blocks. `!style[.class #color bg:…]` is the block counterpart — an
+indentation-delimited container (like `!columns`) that styles its whole body.
+Built in are `.center` (centre the content) and `.frame` (a rounded border — a
+box); `bg:` tints the background; other `.class` names are the theme's to define:
+
+::
+	!style[.center .frame bg:#f5f7ff]
+		A centred, framed panel on a tinted background.
+
+		$E = mc^2$
+
+"Built-in" means that every emitter understands these names; any other class is
+for a theme or template to define.
+
+
+## Code Blocks ^code_blocks
+
+A code block is started by `::`, followed by an indented block of code. This is
+mostly identical to how `.. code-block::` works in rST, just shorter. If no
+language is specified after `::`, then this could be styled simply in monospace
+font. But, you can also indicate which language this by using `:: lang`, where
+lang corresponds to some language. for instance `:: cpp` means there's a block
+of C++ code coming.
+
+In addition, you can attach references to language blocks just as you can attach
+references anywhere else. For instance `:: cpp ^arena_alloc_ref` creates a C++
+block with a reference named `arena_alloc_ref`.
+
+Here are some examples:
+
+:: sh
+	#!/bin/sh
+
+	echo "hello world"
+
+
+:: ^s
+	code block without any language specification
+
+
+:: ^coderef
+	code block with code reference
+
+
+:: tex ^tex_code_block
+
+	\section{Hello World}
+
+	$\sum_{i=1}^{10}{i^2}$
+
+
+:: cpp
+
+	void main() {
+		std::string s = "1234";
+		this is still cpp
+		return 0;
+	}
+
+
+:: python ^pyref
+
+	s = "1234"
+	def main():
+		print("Hello, World")
+
+
+::
+
+	@article{
+		author = {one, two},
+		journal = {journal of something}
+	}
+
+
+## Images
+
+Images are kept separate from the running text, much like in LaTeX and like the
+`!table` statement above. An `!img` block takes an optional title and `^ref`,
+then an indented body of directives — of which only `!src` (where the image
+comes from) is mandatory:
+
+::
+	!img Some image title ^img_ref
+	!src https://some.tld/img.png
+	!caption A funny lemur in front of a wonderful landscape.
+	!width 80%
+
+`!src` is a URL or a path relative to the document, so the minimal image is just:
+
+::
+	!img
+	!src some/relative/path.png
+
+`!width` and `!height` size the image -- a percentage is a fraction of the
+text column, like LaTeX's `\includegraphics[width=0.8\textwidth]` -- and
+`!caption` adds a caption line. Several `!src` lines stack as layers that reveal one at a
+time (see steps, below) in slides: `!mode overlay` (the default) overprints each
+new layer on the previous, while `!mode replace` swaps each for the one before,
+as in the example below:
+
+::
+	!img
+	!src path/to/img0.png
+	!src path/to/img1.png
+	!src path/to/img2.png
+	!caption This is the caption for this image
+	!mode replace
+
+
+## References, links, and citations ^references
+
+References are introduced with `^` and used with `@`, inspired by pointers in
+the Pascal programming language, where `^` declares a pointer and `@`
+dereferences it. Attach `^name` to anything referable — a slide, heading, table,
+code block, image, or environment (`!slide Intro ^intro`, `:: cpp ^alloc`) — and
+point back to it later with `@name`, which links to the target and shows its
+label (its number or title), much like LaTeX's `\ref{}`. Give it your own
+wording with `[text]@name`.
+
+A reference/citation name is letters, digits, `_` and `-` (the same class as a
+mark), so any other punctuation *terminates* it: `@jonas2010:` cites `jonas2010`
+and leaves the colon as text, and `@jonas2010, @pearl1988.` both resolve. A `@`
+may even abut a preceding word — `Kording@jonas2010` is a citation — while a real
+email (`me@host.tld`, with a dotted domain) is left alone. For a key that needs
+odd characters, use the explicit `@(key)` form, whose parentheses delimit it.
+
+Links and emails. A bare URL or email in running text is left as-is (not
+linked). To make one a link, wrap it in angle brackets —
+`<https://rochus.net>`, `<rochus@rochus.net>` — which shows the URL or address
+itself, or give it your own wording with `[text]@(https://…)`.
+
+Citations. When a name resolves to a literature entry (see below), `@key`
+renders as a citation. `@(key1, key2)` cites several at once, and
+`[text]@(key1, key2)` replaces the marker with your own wording — like
+`\cite{…}` in LaTeX.
+
+
+## Literature
+
+A bibliography entry is a definition line, `^key: <entry text>`; each becomes a
+numbered, referable entry:
+
+^doe2025:   John Doe, 2025, Journal of Does, Article Title, Publisher.
+^alice2024: Alice, A. 2024, Another Journal, Another Title, Pub2.
+
+
+## Link targets
+
+A named link target uses the same form with an angle-bracketed URL,
+`^name: <url>`. It produces no visible output of its own — it only gives `@name`
+something to point at:
+
+^website: <https://rochus.net>
+^mail:    <rochus@rochus.net>
+
+
+## Slides and presentations ^slides
+
+The lemur language contains a thin slide layer on top of the language
+above. These constructs are layouting commands and not the core markup, but are
+documented here so the language and its main use stay in one place. The parser
+records them in the AST like everything else, and a slide emitter turns them
+into slides.
+
+Structure. `!slide Title ^ref` starts a slide; `# Title ^ref` is a section
+divider; `##`/`###` inside a slide are headings. `!notes` (indented body) is
+speaker notes, kept in the source but not shown.
+
+Per-slide style. `!slide[.name] Title` (or `#[.name] Title`) adds a style class to
+that slide, so a theme or template restyles just that slide. Built in: `.plain`
+(hide the chrome), `.fill` (drop the content padding), and body alignment
+`.center` (horizontal) and `.middle` (vertical) — these centre the *body* below
+the slide title, leaving the title and chrome in place. The option bracket
+attaches with no space right after the directive/marker, and holds one or more
+`.name` classes (`!slide[.center .middle] Title`). Because it must touch the
+directive, a title may itself start with `[`.
+
+Steps (build-up). Everything is driven by one integer step per slide. Step 0 is
+the slide as first shown (no keypress); each keypress advances the step (1, 2,
+…). `!pause` makes all following content appear together on the next keypress. A
+`+` list item is incremental (one keypress each); `-`/`*` and `1.` are static.
+Extra `!src` layers of an `!img` reveal one at a time, and so do the
+highlight groups of a code block and the lines of `!annotate` and `!connect`.
+The beats of an animation and the steps of a shader (see @computed) follow once
+everything else on the slide has been revealed. A slide deck addresses every moment of a talk as
+`#/<slide>/<step>`.
+
+Lists. Bullets are `-` or `*` (static) and `+` (incremental); ordered items are
+`N.` (the numbers are recomputed — just write `1.`). Nest by indenting a
+sub-list under its parent item; each level is its own list. A running step
+counter flows through the items in reading order — `+` advances it, `-`/`*`/`N.`
+sit at the current value — so an item inherits the step of the previous thing
+shown, and a *nested* item inherits its parent's step (a sub-list under a `+`
+item appears with that item, not from the start).
+
+Overlay control. For explicit control of when things show — and hide again —
+attach an overlay spec `<spec>`: `+<2->`/`-<3>` on a list item, `[content]<2->`
+on an inline run so a word or phrase appears mid-sentence without being a bullet
+(a named mark takes it too: `[content]^name<2->`, so the mark and its connector
+reveal together), or a `!when<spec>` **block** to gate several blocks at once.
+`!when` is indentation-delimited like `!columns`/a table: everything indented
+under it is gated by the spec, and a dedent ends it. `!when` blocks nest, and
+nesting narrows (the inner spec applies inside). A spec is a comma-separated list
+of `n` (only n), `n-` (from n), `-n` (up to n), or `n-m` (a range); an open-ended
+`n-` stays, a bounded spec can hide again. Hidden runs reserve their space, so
+revealing one never reflows the line. `+`/`!pause` are just the common `<n->` case.
+
+Relative steps. To avoid writing step numbers (which are cumbersome and don't
+survive copy-paste), use `+` inside the spec: `<+->` shows from the next
+auto-allocated step onward (like a `+` item, but for any content), and `<+>`
+shows only during it. They compose everywhere — `[phrase]<+->`, `!when<+->`,
+`-<+>` — and the parser numbers them in document order, so you can reorder or
+copy freely.
+
+::
+	Reveal [this]<+-> and then [this]<+->, no numbers needed.
+
+	!when<+->
+		A whole block on the following step.
+
+::
+	!when<2->
+		Both of these appear on keypress 2.
+
+		:: python
+			and_so_does = this_code_block
+
+Spacing. `!gap` adds vertical space between blocks: bare for a default gap,
+`!gap[2em]` for a fixed length, or `!gap[fill]` to grow and push the content
+below it to the bottom (it turns the slide body into a distributing column).
+
+Stacked overlays. `!stack` starts a block whose `!layer<spec>` children overlap
+in one spot, so a layer takes the place of the previous one instead of stacking
+vertically; the box reserves the tallest layer, so content below it never moves.
+Every `!layer` needs an explicit overlay `<spec>` in angle brackets — the same
+`<…>` bracket as `!when` and `+<…>` — with no default. Like `!columns`, the block
+is indentation-delimited and a dedent ends it.
+
+Columns. `!columns[60 40 .boxed]` starts side-by-side columns; its body is
+indented and each `!column`'s content is indented under it in turn (like a table
+or code block), so a dedent ends things — no end marker. In the bracket a numeric
+token is a relative column width (any number of columns; omit for equal) and
+everything else is a style attribute for the container (`.boxed` etc.). Each
+`!column[.center]` takes the same attribute; the built-in `.center`/`.bottom`
+classes set its vertical alignment (`.top` is the default). The step counter
+flows across columns, so a `!pause` in one column defers the content after it.
+
+Nesting. Columns, stacks and environments nest freely — each is just an
+indentation-delimited container: a `!stack` inside a `!column`, a `!columns`
+inside a `!layer` or an environment, columns inside columns, and so on. Only a
+`!column`/`!layer` may hold content directly inside a `!columns`/`!stack` (a
+stray line there is an error). A handy pattern is an outer `!stack` whose layers
+each carry a whole column layout, so a keypress swaps the layout:
+
+:: lemur
+
+	!stack
+		!layer<1>
+			!columns[50 50]
+				!column
+					first layout, left
+				!column
+					right
+		!layer<2->
+			!columns[30 70]
+				!column
+					second layout, a wider right
+				!column
+					right
+
+Code line highlighting. `:: lang[1|4-6|3,7]` steps through line-highlight
+groups (each `|`-group is one keypress). The bracket attaches to the language
+with no space. A language colorizes the code.
+
+Configuration (before the first slide): `!title`, `!subtitle`, `!author`,
+`!institute`, `!date`, `!titleimage`, `!logo <path>`, `!header <text>`,
+`!footer <text>`, `!slidenumbers <on|off>`, `!progress [top|bottom]` (a thin
+progress bar along that edge), `!theme <name>`,
+`!transition <slide> [<step>]` (across-slide `none|fade|slide|push` — `slide`
+moves the whole slide, `push` only the content so the chrome stays; within-slide
+step `none|fade|rise`), `!aspect <16:9|4:3>`. The
+header/footer are shown on content slides; how they look (a thin line, a
+full-bleed brand bar with the logo, ...) is up to the theme.
+
+Files. `!include path.lmr` on a line of its own inserts another file at that
+point, as if its text were written there; the path is relative to the including
+file. Includes nest, and an include cycle is an error. A typical talk is a
+`master.lmr` with the configuration and one `!include` per chapter.
+
+
+## Highlighting and annotation ^highlight
+
+Parts of an equation — or of running text — can be named and then coloured and
+pointed at, without ever writing a coordinate.
+
+Naming. A *mark* tags a piece of content with a name. In math, write
+`\mk{name}{content}` (`$\mk{sum}{\sum_i x_i}$` or inside a `:: math` block); in
+prose, write `[content]^name` (`the [important part]^key`). `name` is letters,
+digits, `_`, `-`. Reusing a name on the same slide **groups** the occurrences:
+they share one colour, one annotation label's arrow fans out to each, and a
+`!connect` pairs each with its nearest counterpart — handy when the same quantity
+appears in a compact form and again, expanded, later in the equation. (An
+accidental reuse only warns, since it is usually a typo.)
+
+Annotating. `!annotate` (indented body) attaches one `name[color]: label`
+line per named part:
+
+::
+	!annotate
+		sum[#3a7d44]: marginalize out everything except $x$
+		fac: weigh by local factor
+
+Each line is its own step: on that keypress the named part changes colour, the
+short label appears, and a curved arrow is drawn from the label to the part — one
+arrow per occurrence when the name is a group, all on the same step. The emitter
+places label and arrow from the typeset layout, so nothing is positioned by
+hand and edits to the content never break an arrow. The `[…]` bracket attaches to the name with no
+space and carries the usual style vocabulary — a colour and dotted style names
+(`.bold`/`.italic`/`.underline`), e.g. `key[#c00 .bold]:`. The colour is optional
+— `[#rrggbb]` or a css colour name; otherwise a palette cycles. A `name[color]:`
+line with no label is a colour-only step. Colours accumulate, so successive steps
+build up the equation. Keep labels
+short; they do not wrap.
+
+
+## Connecting marks ^connect
+
+Where `!annotate` points a *generated label* at a mark, `!connect` draws an
+arrow *between two marks* — turn the arrow around to explain, or link a question
+to its answer. Both marks are just named content (defined with `[…]^name` in
+prose or `\mk{name}{…}` in math); they can sit anywhere, including on the same
+line.
+
+`!connect` (indented body) has one connector per line, `from <arrow> to`
+followed by an optional option bracket:
+
+::
+	What is [computed]^q1? And how is it [feasible]^q2?
+
+	The answers: [theory of computation]^a1 and [compositional models]^a2.
+
+	!connect
+		q1 -> a1  [#c0392b]
+		q2 -> a2  [#2e5e6e .dashed]
+
+The arrow glyph gives direction: `->` (from→to), `<-` (to→from), `<->` (both
+ends), `--` (a plain line, no head). The option bracket holds a colour
+(`#rrggbb` or a css name) and/or line-style keywords (`dashed`, `thin`, `thick`,
+written bare or dotted). Each line is its own step, cumulative, like an annotate
+line; the connector attaches to the facing edges of the two marks, placed from
+the typeset layout like an annotation arrow. A mark
+that is absent on the slide simply draws no arrow. If either name is a group
+(used more than once), the connector covers every occurrence of the larger side,
+pairing each with its nearest counterpart.
+
+
+## Semantic environments ^environments
+
+For scientific and technical writing, lemur knows a fixed set of *semantic
+environments* — `!theorem`, `!lemma`, `!corollary`, `!proposition`,
+`!definition`, `!proof`, `!example`, `!remark`, `!intuition`, `!note`,
+`!warning`, `!exercise`, `!historical`. Each is a block with an optional title
+(and optional `^ref`) and an indentation-delimited body, like `!columns`:
+
+::
+	!theorem Fixed-point on a tree ^bp-fix
+		On a tree, sum-product converges to the exact marginals in a finite
+		number of steps.
+
+	!proof
+		A leaf-to-root then root-to-leaf sweep stabilises every message.
+
+The body may hold *any* block — math, tables, code, lists — and environments
+**nest** (a `!remark` inside a `!proof`, an `!intuition` inside an `!example`);
+a dedent ends the innermost one. Each renders as a titled box that a theme can
+restyle per kind. There is deliberately *no* way to define new environments
+(that macro system is out of scope), and numbering is left to the theme.
+
+
+## Computed figures ^computed
+
+Three blocks put figures on a slide that are __computed__ rather than drawn: a
+plot, an animation, and a live shader. Each takes an optional title and `^ref`,
+like `!img`, followed by directives -- of which `!src`, the program that makes
+the figure, is mandatory. The program is a file next to the document; it is
+trusted code and runs on the author's machine (or, for a shader, on the
+viewer's graphics card).
+
+Plots. `!plot` runs a Python script that draws a figure with matplotlib and
+places the result like an image, with `!caption`, `!width` and `!height`:
+
+::
+	!plot Posterior over time ^post
+		!src posterior.py
+		!caption The posterior sharpens as data arrives.
+		!width 70%
+
+The script hands over its figure as a `figure()` or `plot()` function, a
+module-level `fig`, or simply as the current pyplot figure.
+
+Animations. `!anim` runs a Python animation written with the `lemur.anim`
+library: a class derived from `Anim` whose `build()` plays animations on shapes,
+text and maths, in 2-D or seen through a 3-D camera. Each `self.next()` in
+`build()` marks a __beat__, and every beat is one step of the slide, so the
+animation advances with the rest of the slide's build-up. `!viewport` says where
+it is drawn: `body` (the slide body, the default), `full` (the whole slide), or
+`x y w h`, a rectangle in the design's coordinates.
+
+::
+	!anim ^hello
+		!src hello.py
+		!viewport body
+
+:: python
+	from lemur.anim import Anim, Circle, Create, RIGHT
+
+	class Hello(Anim):
+		def build(self):
+			c = Circle()
+			self.play(Create(c))
+			self.next()                  # one slide step
+			self.play(c.animate.shift(RIGHT * 2))
+
+Shaders. `!shader` runs a GLSL fragment shader live, while the slide is shown.
+The shader follows the convention of Shadertoy -- a function
+`mainImage(out vec4 color, in vec2 pixel)` with the uniforms `iResolution`,
+`iTime`, `iTimeDelta`, `iFrame` and `iMouse` -- so shaders from there can be
+pasted in. lemur adds the slide's step: `!steps N` gives the shader `N` steps of
+its own, which it reads as `iStep` (eased, so the scene glides from one state to
+the next), `iStepRaw` (the whole number) and `iSteps`. `!viewport` works as for
+`!anim`; `full` draws the shader behind the slide's text. `!quality` (a factor
+up to 1) caps the resolution, and `!sound drone` or `!sound aurora` attaches a
+generative soundtrack that stays silent until the presenter switches it on. A
+line `#include "file.glsl"` in the shader inserts another file, resolved when the
+document is built.
+
+::
+	!shader
+		!src terrain.glsl
+		!viewport full
+		!steps 3
+		!sound drone

@@ -1,0 +1,108 @@
+# Slide features ^features
+
+!slide Two columns ^columns_demo
+
+A slide can split into columns, and the step counter flows across them, so a
+pause in one column defers what follows — including the next column.
+
+!columns[60,40]
+	!column
+		The **left** column carries the main argument (60% of the width). It
+		holds any lemur: lists, inline math like $\nabla \cdot \mathbf{E} =
+		\rho/\varepsilon_0$, and its own pauses.
+
+		- a static point, shown from the start
+		- a second static point
+		- a third, so this column is taller than the right one
+		+ an incremental point (one keypress)
+
+	!column[.center]
+		!pause
+		The **right** column (40%) is centered vertically, and waits for the
+		left column's pause, so it appears only after the bullet on the left.
+
+		!pause
+		Its own pauses then work within the column.
+
+
+!slide Emphasis on a keypress ^emphasis_demo
+
+Parts of already-shown text can be colored or emphasized as you speak, without
+moving anything on the slide (no arrows):
+
+- convergence is the [interesting question]^q on loopy graphs
+- the schedule is [surprisingly subtle]^sched
+- and the whole iteration is [asynchronous by nature]^async
+
+!annotate
+	q[#c0392b .bold]:
+	sched[.bold]:
+	async[#2e5e6e .italic]:
+
+
+!slide Overlay control ^overlays
+
+Beyond `!pause`, you can say exactly __when__ a thing shows — and hide it
+again, like LaTeX/beamer overlays. Step 0 is the slide as first shown; each
+keypress advances the step (1, 2, 3, …), so `<1->` shows on the first keypress,
+`<2>` only on the second, `<2-3>` during the second and third:
+
+- shown from the start (step 0)
++<1-> appears on the first keypress, and stays
+-<2> only on the second keypress — a transient aside
++<3-> appears on the third, and stays
+
+!when<2-3>
+	Everything indented under `!when` is gated together — here, visible on
+	keypresses 2–3, then gone. `!when` blocks nest to narrow the window.
+
+
+!slide Stacked overlays ^stacks
+
+With `!stack`, layers overlap in one spot and **take the place of** each other
+instead of stacking vertically. Each `!layer<spec>` says when it shows; the box
+reserves the tallest layer, so nothing below it moves:
+
+!stack
+	!layer<0>
+		- a variable node sends the product of its **incoming** messages
+	!layer<1>
+		- a factor node weighs by its **local factor** and marginalizes
+	!layer<2->
+		- on trees this is **exact**; on loopy graphs it iterates
+
+… and the summary line stays put underneath as the point above swaps.
+
+
+!slide Transitions ^transitions
+
+`!transition <slide> [<step>]` sets two independent animations for the whole
+deck. This talk uses **none** across slides; the `corporate` example deck uses
+`!transition push rise` — see it there.
+
+!columns[50,50]
+	!column
+		**Across slides** (first word):
+
+		- `none` — cut, no animation
+		- `fade` — cross-dissolve
+		- `slide` — the whole slide slides
+		- `push` — only the content slides; header/footer stay
+	!column
+		**Within a slide** (second word), as each `!pause`/`+`/overlay item
+		appears:
+
+		- `none` — appear instantly
+		- `fade` — fade in
+		- `rise` — lift up from below
+
+
+!slide[.center .plain] One idea to take home
+
+!gap[fill]
+Message passing is **local computation plus a schedule** — and the schedule is
+where the interesting engineering lives.
+!gap[fill]
+
+%% '.center' centers the content vertically; '.plain' drops the header/footer.
+%% A theme (or base.css) styles '.slide.<name>', so the look is fully yours.
