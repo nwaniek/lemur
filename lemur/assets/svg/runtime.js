@@ -12,7 +12,7 @@
   var STEP_TRANS = cfg.step || 'fade';          // within-slide: none|fade|rise
   var cur = 0, step = 0;
   // Plugins (e.g. the live-shader player) register before this script runs:
-  // { steps(i) → extra steps of slide i, show(i, localStep, jump) on every
+  // { steps(i) → extra steps of slide i, show(i, localStep, jump, slideStep) on every
   //   render, thumb(svgClone, i) for the overview, key(ev) → true if handled }.
   var PLUGINS = window.LMR_PLUGINS || [];
   function pluginSteps(i) {
@@ -333,7 +333,7 @@
       });
     }
     var pjump = shown !== cur || Math.abs(step - shownStep) > 1;
-    PLUGINS.forEach(function (p) { if (p.show) p.show(cur, Math.max(0, step - animBase(cur)), pjump); });
+    PLUGINS.forEach(function (p) { if (p.show) p.show(cur, Math.max(0, step - animBase(cur)), pjump, step); });
     shown = cur;
     shownStep = step;
     updateHash();

@@ -38,6 +38,7 @@ everywhere, needs no network, and supports the whole language.
 | `!plot` (matplotlib) | ✓ | — |
 | `!anim` (`lemur.anim`) | ✓ | — |
 | `!shader` (live GLSL) | ✓ | — |
+| `!compute` (live WebGPU compute) | ✓ | — |
 | design | `style.py` (Python: fields and templates), or a `theme.css` | `theme.css` (CSS custom properties and rules) |
 | printing | one page per slide, fully built | one page per step |
 | works offline | always | with `--assets` (a local MathJax) |
@@ -54,7 +55,8 @@ everywhere, needs no network, and supports the whole language.
   glyph boxes.
 - **The player.** A small script steps through the slides and animates the
   step reveals and transitions. It also plays `!anim` keyframes (projecting 3‑D
-  views on the fly) and runs `!shader`s with WebGL 2.
+  views on the fly), runs `!shader`s with WebGL 2 and `!compute` programs with
+  WebGPU.
 - **The still frame.** Every slide is also written in its final state, which
   printing and the overview use.
 

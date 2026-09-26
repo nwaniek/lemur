@@ -47,7 +47,9 @@ at it with a label, one step at a time. There are no coordinates to maintain.
 
 **Figures that compute.** Put a matplotlib figure on a slide with `!plot`. With
 `!anim`, animate with a manim-style library that includes 3‑D views. With
-`!shader`, run a GLSL shader live on the GPU.
+`!shader`, run a GLSL shader live on the GPU, and with `!compute`, run WebGPU
+compute kernels: simulations and parallel algorithms, live and in step with
+the talk.
 
 **Design in one file.** Pick a theme, or restyle everything from a `style.py`
 next to the deck: colours, fonts, regions, and slide templates written in
@@ -106,6 +108,7 @@ figures/animations
 figures/3d
 figures/illustrated
 figures/shaders
+figures/compute
 ```
 
 ```{toctree}

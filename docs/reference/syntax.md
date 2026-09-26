@@ -91,3 +91,4 @@ Built-in style classes: `.bold`, `.italic`, `.underline`, `.strike`,
 | `!plot Title ^ref` | `!src script.py`, `!caption`, `!width`, `!height` |
 | `!anim Title ^ref` | `!src module.py`, `!viewport body\|full\|x y w h`, `!width`, `!height` |
 | `!shader Title ^ref` | `!src shader.glsl`, `!steps N`, `!viewport …`, `!width`, `!height`, `!quality q`, `!sound drone\|aurora` |
+| `!compute Title ^ref` | `!src program.wgsl`, `!steps N\|slide`, `!rate R`, `!seed S`, `!warmup T`, `!viewport …`, `!width`, `!height`, `!quality q` |

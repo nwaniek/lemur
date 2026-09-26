@@ -48,6 +48,7 @@ sidebar; the URL tracks `#/<slide>/<step>`.
 | [`tangent-space-illustrated/`](tangent-space-illustrated/) | the same lecture, drawn like a paper figure: lit, opaque surfaces with a silhouette and contact shadow, haloed vectors, paper and ink (`View.shaded_surface`) |
 | [`optimal-transport/`](optimal-transport/) | a short **lecture** with a **particle system**: optimal transport on a sphere — geodesic paths, random vs optimal plans, Sinkhorn blur, shapes reshaped (`lemur.anim.illustrate`) |
 | [`live-shaders/`](live-shaders/) | **live GPU shaders** on slides (`!shader`): a demoscene homage — aurora, raymarched terrain flyover, volumetric clouds, curl-noise fluid — stepped by the slides, with optional generative sound |
+| [`compute/`](compute/) | **WebGPU compute shaders** (`!compute`): a parallel reduction stepped with its code, a million-sample histogram with atomics, reaction–diffusion, a quarter of a million particles |
 | [`plots/`](plots/) | `!plot` — publication-quality matplotlib figures (scatter, contour, bars, violin) baked to SVG |
 
 ## Template mechanism — bring your own design

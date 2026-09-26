@@ -774,6 +774,8 @@ class Parser:
             self.parse_anim(arg, ln)
         elif name == "shader":
             self.parse_shader(arg, ln)
+        elif name == "compute":
+            self.parse_compute(arg, ln)
         elif name == "plot":
             self.parse_plot(arg, ln)
         elif name == "columns":
@@ -1104,6 +1106,56 @@ class Parser:
         self.add(Block("shader", sh), ln)
         if ref and self.slide:
             self.register_ref(ref, self.slide.sid, title or "shader", "shader", ln)
+
+    def parse_compute(self, arg: str, ln: "Line") -> None:
+        """A WebGPU compute program on the slide: `!src` is WGSL with compute
+        kernels and a `mainImage`; the presenter runs it live. `!steps N` gives
+        it N steps of its own (or `!steps slide`: it follows the slide's own
+        step); `!rate` is its simulation ticks per second, `!seed` its random
+        seed, `!warmup` the seconds replayed per step when jumping ahead;
+        `!viewport`/`!width`/`!height`/`!quality` as for `!shader`."""
+        title, ref = split_ref(arg)
+        cp = {"title": title, "ref": ref, "src": None, "viewport": "body", "width": None,
+              "height": None, "steps": None, "quality": None, "rate": None, "seed": None,
+              "warmup": None}
+        while (nl := self.peek()) is not None:
+            if nl.blank or is_comment(nl.text):
+                self.next()
+                continue
+            dm = RE_DIRECTIVE.match(nl.stripped)
+            if not dm:
+                break
+            dname, darg = dm.group(1), (dm.group(3) or "").strip()
+            if dname in ("src", "viewport", "width", "height", "quality"):
+                self.next()
+                cp[dname] = darg
+            elif dname == "steps":
+                self.next()
+                if darg != "slide" and not darg.isdigit():
+                    raise self.err("'!steps' takes a whole number, or 'slide' to follow the "
+                                   "slide's own steps", nl)
+                cp["steps"] = darg if darg == "slide" else int(darg)
+            elif dname in ("rate", "warmup"):
+                self.next()
+                try:
+                    v = float(darg)
+                except ValueError:
+                    v = -1.0
+                if v < 0 or (dname == "rate" and v == 0):
+                    raise self.err(f"'!{dname}' takes a positive number", nl)
+                cp[dname] = v
+            elif dname == "seed":
+                self.next()
+                if not darg.isdigit():
+                    raise self.err("'!seed' takes a whole number", nl)
+                cp["seed"] = int(darg)
+            else:
+                break
+        if not cp["src"]:
+            raise self.err("'!compute' without a '!src' (the WGSL program)", ln)
+        self.add(Block("compute", cp), ln)
+        if ref and self.slide:
+            self.register_ref(ref, self.slide.sid, title or "compute", "compute", ln)
 
     def parse_plot(self, arg: str, ln: "Line") -> None:
         """A build-time figure from a matplotlib script. `!src` is a Python module
@@ -1788,6 +1840,22 @@ def shader_ast(d: dict) -> dict:
     return node
 
 
+def compute_ast(d: dict) -> dict:
+    """WebGPU compute intent: the WGSL source, where it renders, its steps (a
+    count, or "slide" to follow the slide's own), and the simulation's rate,
+    seed, warm-up and resolution scale."""
+    node: dict = {"src": d["src"], "viewport": d.get("viewport") or "body"}
+    for k in ("width", "height", "quality"):
+        if d.get(k):
+            node[k] = d[k]
+    if d.get("steps") is not None:
+        node["steps"] = d["steps"]
+    for k in ("rate", "warmup", "seed"):
+        if d.get(k) is not None:
+            node[k] = d[k]
+    return node
+
+
 def plot_ast(d: dict, refs: dict) -> dict:
     """Figure intent: the matplotlib source module + author-intent size/caption.
     The emitter runs the module and bakes the figure to a self-contained SVG."""
@@ -1904,9 +1972,10 @@ def iter_blocks(blocks: list):
 BLOCK_TYPE = {"image": "figure", "bib": "bibliography"}
 # node types that may carry a reveal spec (per the schema)
 REVEAL_OK = {"heading", "para", "list", "code", "math", "table", "image",
-             "columns", "env", "style"}
+             "columns", "env", "style", "anim", "shader", "plot", "compute"}
 # node types that may carry a cross-reference id (per the schema)
-ID_OK = {"heading", "math", "code", "table", "image", "env", "style"}
+ID_OK = {"heading", "math", "code", "table", "image", "env", "style",
+         "anim", "shader", "plot", "compute"}
 
 
 def block_to_ast(b: Block, refs: dict) -> dict:
@@ -1961,6 +2030,8 @@ def block_to_ast(b: Block, refs: dict) -> dict:
         node.update(anim_ast(b.data))
     elif b.kind == "shader":
         node.update(shader_ast(b.data))
+    elif b.kind == "compute":
+        node.update(compute_ast(b.data))
     elif b.kind == "plot":
         node.update(plot_ast(b.data, refs))
     elif b.kind == "annotate":

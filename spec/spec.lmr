@@ -644,8 +644,8 @@ restyle per kind. There is deliberately *no* way to define new environments
 
 ## Computed figures ^computed
 
-Three blocks put figures on a slide that are __computed__ rather than drawn: a
-plot, an animation, and a live shader. Each takes an optional title and `^ref`,
+Four blocks put figures on a slide that are __computed__ rather than drawn: a
+plot, an animation, a live shader, and a live compute program. Each takes an optional title and `^ref`,
 like `!img`, followed by directives -- of which `!src`, the program that makes
 the figure, is mandatory. The program is a file next to the document; it is
 trusted code and runs on the author's machine (or, for a shader, on the
@@ -705,3 +705,28 @@ document is built.
 		!viewport full
 		!steps 3
 		!sound drone
+
+Compute programs. `!compute` runs a WebGPU program live, while the slide is
+shown: compute kernels over buffers of data, and a function that draws. The
+program is written in WGSL. It declares its storage buffers with fixed sizes
+(in group 0, from binding 1 on), marks each `@compute` kernel with a comment
+line `//! threads N` (one to three counts) saying how many threads to run, and
+marks a kernel that only initialises with `//! once`. The kernels run in the
+order they are written, once per __tick__; `fn mainImage(fragCoord: vec2f) ->
+vec4f` draws the picture. lemur provides a uniform `lmr` (the step, eased as
+`lmr.step` and whole as `lmr.step_raw`, the simulation time and timestep, the
+tick, a seed, the resolution and the pointer) and two helpers, `lmr_hash` and
+`lmr_rand`.
+
+`!steps N` gives the program `N` steps of its own, like a shader; `!steps
+slide` makes it follow the slide's own step instead. `!rate` is the number of
+ticks per second, `!seed` the seed, and `!warmup` the seconds of simulation
+replayed for each step when a talk jumps ahead; `!viewport`, `!width`,
+`!height` and `!quality` are as for `!shader`. Going back to a step shows the
+simulation as it was when the step was first entered.
+
+::
+	!compute
+		!src life.wgsl
+		!steps 3
+		!rate 12

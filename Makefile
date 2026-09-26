@@ -24,7 +24,7 @@ python:
 # picks it up automatically — no extra flags.
 examples:
 	@mkdir -p build/examples
-	@for d in formatting math lists tables figures code columns environments annotations references transitions animation animation3d anim-science anim-calculus anim-3d plots parallel-transport tangent-space tangent-space-illustrated optimal-transport live-shaders corporate custom-templates; do \
+	@for d in formatting math lists tables figures code columns environments annotations references transitions animation animation3d anim-science anim-calculus anim-3d plots parallel-transport tangent-space tangent-space-illustrated optimal-transport live-shaders compute corporate custom-templates; do \
 		echo "  $$d"; python3 lmr2svg.py examples/$$d/deck.lmr -o build/examples/$$d.html || exit 1; \
 	done
 	@echo "  lecture";         python3 lmr2svg.py examples/lecture/master.lmr -o build/examples/lecture.html || exit 1

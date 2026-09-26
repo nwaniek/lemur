@@ -1,0 +1,105 @@
+%% Compute shaders on slides: WebGPU programs that run live and step with the talk.
+%%   lmr2svg examples/compute/deck.lmr -o compute.html
+%% Needs a browser with WebGPU (current Chrome, Edge, Safari; Firefox on Windows).
+!title Thinking in Parallel
+!subtitle compute shaders on slides, running live on your GPU
+!theme dark
+
+!slide A parallel sum in five steps
+
+!columns[42 58]
+	!column
+		32 threads add 32 numbers. After each level they meet at a
+		**barrier**; half of them add a neighbour's partial sum.
+
+		:: wgsl[1-2|4-6|4-6|4-6|4-6|4-6|9]
+			s[i] = vals[i];
+			workgroupBarrier();
+			for (var d = 1u; d < N; d *= 2u) {
+			  if (i % (2u * d) == 0u) {
+			    s[i] += s[i + d];
+			  }
+			  workgroupBarrier();
+			}
+			if (i == 0u) { total = s[0]; }
+
+		Sequentially: 31 additions. In parallel: $\log_2 32 = 5$ rounds.
+	!column
+		!compute
+			!src reduce.wgsl
+			!steps slide
+
+!slide Atomics: a million threads, 256 bins
+
+Each thread draws one sample, the sum of $k$ uniform numbers, and adds it to a
+histogram. Many threads hit the same bin at once, so the count is an
+`atomicAdd`. As $k$ grows, the histogram becomes the normal curve:
+
+!compute
+	!src clt.wgsl
+	!steps 4
+
+!slide Reaction and diffusion
+
+!columns[40 60]
+	!column[.center]
+		Two chemicals diffuse and react:
+
+		:: math
+			\partial_t u = D_u \nabla^2 u - u v^2 + F (1 - u) \\
+			\partial_t v = D_v \nabla^2 v + u v^2 - (F + k)\, v
+
+		Every cell is a thread; each keypress moves the feed $F$ and kill
+		rate $k$: spots, coral, mazes, holes.
+	!column
+		!compute
+			!src grayscott.wgsl
+			!steps 3
+			!rate 300
+
+!slide[.plain]
+
+!compute
+	!src flow.wgsl
+	!viewport full
+	!steps 2
+
+!gap[fill]
+
+!style[.center]
+	[A quarter of a million particles in a curl-noise flow: press → for a vortex, then two.]{#dfe8f2}
+
+!slide Put a compute shader on your slide
+
+!columns[45 55]
+	!column
+		:: lemur
+			!compute
+				!src sim.wgsl
+				!steps 3
+
+		:: wgsl
+			@group(0) @binding(1) var<storage,
+			  read_write> cells: array<f32, 65536>;
+
+			//! threads 65536
+			@compute @workgroup_size(64)
+			fn tick(@builtin(global_invocation_id)
+			        id: vec3u) {
+			  cells[id.x] += lmr.dt;
+			}
+
+			fn mainImage(p: vec2f) -> vec4f { … }
+	!column
+		!table
+		!cols Provided | Meaning
+		!noheader
+
+			`lmr.step`, `lmr.step_raw` | the step: eased, and whole
+			`lmr.time`, `lmr.dt`, `lmr.tick` | simulation time, timestep, tick
+			`lmr.resolution`, `lmr.mouse` | the canvas, the pointer
+			`lmr.seed`, `lmr_rand(x)` | a seed, a hash to $[0, 1)$
+			`//! threads N` | the threads a kernel runs
+			`//! once` | a kernel that initialises
+
+		Going back restores the simulation; jumping ahead replays it.

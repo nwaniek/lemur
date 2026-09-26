@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import html as _html
 import json
 import os
 import re
@@ -383,6 +384,8 @@ def _render_block(fx: _Fx, node: dict, x: float, w: float, y: float, g, align: s
         return _emit_anim(fx.slide, node, fx.design, y, (x, w), g, fx.doc_dir, rbottom)
     if t == "shader":
         return _emit_shader(fx, node, x, w, y, g, rbottom)
+    if t == "compute":
+        return _emit_compute(fx, node, x, w, y, g, rbottom)
     if t == "columns":
         return _b_columns(fx, node, x, w, y, g, align)
     if t == "stack":
@@ -1312,6 +1315,8 @@ def _read_glsl(path: str, seen=None) -> str:
 _USES_SHADERS = [False]
 #: … and when an !anim has 3-D world shapes (then it inlines their projector).
 _USES_WORLD = [False]
+#: … and when a slide carries a `!compute` (the WebGPU player).
+_USES_COMPUTE = [False]
 
 
 def _emit_shader(fx: _Fx, node: dict, x: float, w: float, top: float, gate,
@@ -1348,6 +1353,58 @@ def _emit_shader(fx: _Fx, node: dict, x: float, w: float, top: float, gate,
     if (node.get("viewport") or "body").strip() != "body":
         return None                  # full / explicit rect: behind the text, no flow space
     return vy + vh
+
+
+def _emit_compute(fx: _Fx, node: dict, x: float, w: float, top: float, gate,
+                  rbottom: "float | None") -> "float | None":
+    """A live WebGPU program: the WGSL (includes resolved) is read at build time
+    for its buffers and kernels (`lemur.wgsl`), inlined with that manifest, and a
+    canvas placed in its viewport, like `!shader`. The presenter runs it
+    (`svg/compute.js`). A WGSL problem found here is reported with its line and
+    shown on the slide."""
+    from .. import wgsl as W
+
+    src = node.get("src")
+    path = os.path.join(fx.doc_dir, src or "")
+    vx, vy, vw, vh = _anim_viewport(node, fx.design, top, (x, w), 16 / 9, rbottom)
+    flow_end = vy + vh if (node.get("viewport") or "body").strip() == "body" else None
+    try:
+        text, lines = W.read_source(path)
+    except OSError:
+        diag.warn(f"!compute source not found: {src}")
+        _missing_image(fx, src or "?", vx, vy, vw, vh, gate)
+        return vy + vh
+    try:
+        prog = W.analyse(text, lines)
+    except W.WGSLError as exc:
+        at = ""
+        if 0 < exc.line <= len(lines):
+            f, ln = lines[exc.line - 1]
+            at = f"{os.path.basename(f)}:{ln}: "
+        diag.warn(f"!compute {src}: {at}{exc}")
+        msg = _html.escape(f"{at}{exc}")
+        fx.slide.add_back(
+            f'<rect x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(vw)}" height="{fmt(vh)}" fill="#2a0d12"/>'
+            f'<foreignObject x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(vw)}" height="{fmt(vh)}">'
+            f'<pre xmlns="http://www.w3.org/1999/xhtml" class="lmr-shader-error">WGSL: {msg}</pre></foreignObject>',
+            gate=gate)
+        return flow_end
+    _USES_COMPUTE[0] = True
+    b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+    man = json.dumps(prog.manifest(), separators=(",", ":"))
+    steps = node.get("steps")
+    attrs = [f'data-wgsl="{b64}"', f'data-manifest="{_esc_attr(man)}"',
+             f'data-steps="{"slide" if steps == "slide" else int(steps or 0)}"']
+    for k in ("rate", "seed", "warmup", "quality"):
+        if node.get(k) is not None:
+            attrs.append(f'data-{k}="{_esc_attr(str(node[k]))}"')
+    fx.slide.add_back(
+        f'<rect x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(vw)}" height="{fmt(vh)}" fill="#05070d"/>'
+        f'<foreignObject class="lmr-compute" x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(vw)}" '
+        f'height="{fmt(vh)}" {" ".join(attrs)}>'
+        f'<div xmlns="http://www.w3.org/1999/xhtml" class="lmr-compute-box"></div></foreignObject>',
+        gate=gate)
+    return flow_end
 
 
 def _esc_attr(s: str) -> str:
@@ -2262,6 +2319,8 @@ def render_deck(title: str, slide_svgs: list, design: Design, live_reload: bool 
         js = _read_asset("svg/shader.js") + "\n" + js
     if _USES_WORLD[0]:                        # the 3-D projector for !anim world shapes
         js = _read_asset("svg/world.js") + "\n" + js
+    if _USES_COMPUTE[0]:                      # the WebGPU player for !compute
+        js = _read_asset("svg/compute.js") + "\n" + js
     tr = transition or {}
     cfg = {"labels": labels or {}, "across": tr.get("across") or "none",
            "step": tr.get("step") or "fade", "progress": progress}
@@ -2418,6 +2477,7 @@ def build_html(path: str, live_reload: bool = False, design: "Design | None" = N
     _BUILD_MEMO.clear()
     _USES_SHADERS[0] = False
     _USES_WORLD[0] = False
+    _USES_COMPUTE[0] = False
     diag.drain()
     LAST_WARNINGS.clear()
     try:

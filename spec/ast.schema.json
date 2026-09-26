@@ -98,6 +98,7 @@
         { "$ref": "#/$defs/figure" },
         { "$ref": "#/$defs/anim" },
         { "$ref": "#/$defs/shader" },
+        { "$ref": "#/$defs/compute" },
         { "$ref": "#/$defs/plot" },
         { "$ref": "#/$defs/columns" },
         { "$ref": "#/$defs/stack" },
@@ -318,6 +319,27 @@
         "height": { "type": "string" },
         "steps": { "type": "integer", "minimum": 0 },
         "sound": { "type": "string" },
+        "quality": { "type": "string" },
+        "id": { "type": "string" },
+        "reveal": { "$ref": "#/$defs/reveal" }
+      }
+    },
+
+    "compute": {
+      "type": "object",
+      "description": "A live WebGPU program on the slide. `src` is WGSL with storage buffers, `@compute` kernels (each annotated `//! threads N`, optionally `//! once`) and a `mainImage(fragCoord: vec2f) -> vec4f` that draws. `steps` is how many slide steps it drives, or \"slide\" to follow the slide's own step; `rate` its simulation ticks per second, `seed` its random seed, `warmup` the seconds replayed per step when jumping ahead; `viewport`, `width`, `height`, `quality` as for `shader`. Emitters that cannot run it show a placeholder.",
+      "additionalProperties": false,
+      "required": ["type", "src", "viewport"],
+      "properties": {
+        "type": { "const": "compute" },
+        "src": { "type": "string" },
+        "viewport": { "type": "string" },
+        "width": { "type": "string" },
+        "height": { "type": "string" },
+        "steps": { "anyOf": [{ "type": "integer", "minimum": 0 }, { "const": "slide" }] },
+        "rate": { "type": "number", "exclusiveMinimum": 0 },
+        "warmup": { "type": "number", "minimum": 0 },
+        "seed": { "type": "integer", "minimum": 0 },
         "quality": { "type": "string" },
         "id": { "type": "string" },
         "reveal": { "$ref": "#/$defs/reveal" }

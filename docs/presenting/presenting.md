@@ -45,5 +45,6 @@ a slide (a bounded overlay such as `<2>`) is left out of the printed page.
   large photo-heavy decks, `--separate-images` writes a folder instead, with the
   deck's `index.html` and an `images/` folder. Share the whole folder.
 - Stepping, transitions, animations and shaders run in the browser's
-  JavaScript, which browsers enable by default.
+  JavaScript, which browsers enable by default. `!compute` slides also need
+  WebGPU (see [Compute shaders](../figures/compute.md)).
 - Speaker notes (`!notes`) are not included in what the audience sees.

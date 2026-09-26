@@ -45,7 +45,7 @@ intent in its own way. The exact shape is given by a JSON Schema,
 | `code` | `:: lang` |
 | `table` | `!table` |
 | `figure` | `!img` |
-| `plot`, `anim`, `shader` | `!plot`, `!anim`, `!shader` |
+| `plot`, `anim`, `shader`, `compute` | `!plot`, `!anim`, `!shader`, `!compute` |
 | `columns`, `stack` | `!columns`, `!stack` |
 | `env` | environments (`kind`: `theorem`, `proof`, …) |
 | `style` | `!style` |

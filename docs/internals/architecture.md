@@ -44,9 +44,10 @@ nothing that belongs to one output format.
 | `lemur.typeset` | text shaping with Pango (runs → glyph outlines); maths with `latex` + `dvisvgm`; the LaTeX cache; Unicode-to-TeX translation |
 | `lemur.layout` | the block layout engine: paragraphs, lists, tables, code, columns, collapsing margins, overflow checks |
 | `lemur.master`, `lemur.style`, `lemur.themes` | the design box (`Style` → `Design`), shipped themes, theme lookup, `style.py` loading |
-| `lemur.emit.svg` | pagination, templates (`content`, `cover`, `section`, and any registered in a `style.py`), annotations and connectors, figures, `!plot`, `!anim`, `!shader`, and assembly of the deck |
+| `lemur.emit.svg` | pagination, templates (`content`, `cover`, `section`, and any registered in a `style.py`), annotations and connectors, figures, `!plot`, `!anim`, `!shader`, `!compute`, and assembly of the deck |
 | `lemur.render` | the slide as SVG: each distinct glyph outline is stored once and placed by reference; the step gates of every element |
-| `lemur/assets/svg/` | the player that ships in every deck: `runtime.js` (navigation, steps, transitions, the overview, the animation player), `world.js` (3‑D projection, only in decks that need it) and `shader.js` (WebGL, only in decks with shaders) |
+| `lemur.wgsl` | reads a `!compute` program's buffers and kernels out of its WGSL at build time |
+| `lemur/assets/svg/` | the player that ships in every deck: `runtime.js` (navigation, steps, transitions, the overview, the animation player), `world.js` (3‑D projection, only in decks that need it), `shader.js` (WebGL, only in decks with shaders) and `compute.js` (WebGPU, only in decks with `!compute`) |
 
 Each slide becomes one inline SVG, with every element gated on the steps it is
 visible for. The player only switches visibility and runs animations; it never

@@ -14,8 +14,10 @@ everything that appears, changes or disappears:
 
 These all draw from the same counter, in reading order, so they interleave
 naturally. When everything on a slide has been revealed, the slide's
-[animations](../figures/animations.md) and [shaders](../figures/shaders.md) take
-over: each further keypress plays the next animation beat or shader step.
+[animations](../figures/animations.md), [shaders](../figures/shaders.md) and
+[compute programs](../figures/compute.md) take over: each further keypress plays
+the next animation beat or shader step. (A compute program can instead follow
+the slide's own steps, with `!steps slide`.)
 
 ## `!pause`
 

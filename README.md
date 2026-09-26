@@ -48,7 +48,7 @@ and open `build/docs/index.html`.
 - [The language at a glance](#the-language-at-a-glance)
 - [Presenting](#presenting)
 - [Design: themes, `style.py` and templates](#design-themes-stylepy-and-templates)
-- [Figures that compute: `!plot`, `!anim`, `!shader`](#figures-that-compute-plot-anim-shader)
+- [Figures that compute: `!plot`, `!anim`, `!shader`, `!compute`](#figures-that-compute-plot-anim-shader-compute)
 - [Diagnostics](#diagnostics)
 - [The toolchain](#the-toolchain)
 - [Examples](#examples)
@@ -143,7 +143,7 @@ curls straight quotes. Code and maths are never touched.
 | step control | `!pause`, `!when<2-4>` blocks, relative `<+->` / `<+>` |
 | explanation | `!annotate` (colour a mark and label it with an arrow), `!connect` (an arrow between two marks) |
 | references | `^key: entry` bibliography lines, `^name: <url>` link targets |
-| computed figures | `!plot`, `!anim`, `!shader` (see below) |
+| computed figures | `!plot`, `!anim`, `!shader`, `!compute` (see below) |
 | other | `!notes` (speaker notes, not shown), `!include file.lmr`, `%%` comments |
 
 Blocks are delimited by indentation. The first line of a body sets its
@@ -239,7 +239,7 @@ Slide classes that are not templates act as layout modifiers:
 `style.py` runs at build time as trusted code. See `examples/custom-templates/`
 and `examples/corporate/`.
 
-## Figures that compute: `!plot`, `!anim`, `!shader`
+## Figures that compute: `!plot`, `!anim`, `!shader`, `!compute`
 
 **`!plot`** runs a matplotlib script at build time and places the figure as a
 self-contained vector image. It takes `!caption` and `!width` like `!img`.
@@ -296,6 +296,19 @@ Shadertoy's `mainImage` convention and uniforms, plus lemur's own:
 
 The overview and print show the last rendered frame.
 
+**`!compute`** runs a WebGPU program live: `@compute` kernels over storage
+buffers, thousands or millions of threads at a time, and a `mainImage` that
+draws the result. It suits parallel algorithms (reductions, atomics, scans) and
+simulations (particles, reaction–diffusion, cellular automata).
+- Buffers are declared in the WGSL with fixed sizes; lemur reads them and each
+  kernel's `//! threads N` annotation at build time, and reports mistakes with
+  their line.
+- The simulation runs with a fixed timestep (`!rate`) and seed. Its state is
+  saved at every step, so going back restores it, and jumping ahead replays it.
+- `!steps N` gives it steps of its own; `!steps slide` makes it follow the
+  slide's own steps, for example in step with a highlighted code block.
+- It needs a browser with WebGPU. Elsewhere the slide shows a notice.
+
 ## Diagnostics
 
 A build does not fail on a problem in one slide; it reports the problem and
@@ -322,8 +335,8 @@ and knows nothing about any output format. Emitters turn it into output.
 
 | command | output |
 |---|---|
-| `lmr2svg` | **one self-contained HTML file**: text and maths baked to SVG outlines at build time, a small player for steps, transitions, animations and shaders. Supports the whole language. |
-| `lmr2slides` | an HTML/CSS deck *folder*: the slide DOM is written at build time, and maths is typeset in the browser by MathJax. It supports the core language and slide layer, but not `!plot`, `!anim` or `!shader`. |
+| `lmr2svg` | **one self-contained HTML file**: text and maths baked to SVG outlines at build time, a small player for steps, transitions, animations, shaders and compute programs. Supports the whole language. |
+| `lmr2slides` | an HTML/CSS deck *folder*: the slide DOM is written at build time, and maths is typeset in the browser by MathJax. It supports the core language and slide layer, but not `!plot`, `!anim`, `!shader` or `!compute`. |
 | `lmr2ast` | the AST as JSON, for inspection or for your own emitter |
 
 ### `lmr2slides`
@@ -360,7 +373,8 @@ and transitions. It also has the design mechanisms (`custom-templates`,
 - `tangent-space` and `tangent-space-illustrated`, which use 3‑D animation;
 - `optimal-transport`, a particle system on a sphere;
 - `parallel-transport`;
-- `live-shaders`, a demoscene-style deck with GPU shaders and sound.
+- `live-shaders`, a demoscene-style deck with GPU shaders and sound;
+- `compute`, WebGPU compute shaders: a parallel reduction, atomics, reaction–diffusion and particles.
 
 Each folder has a README.
 
@@ -390,6 +404,7 @@ Layout of the package:
 | `lemur/typeset/` | Pango text, LaTeX maths, outline geometry, the on-disk cache |
 | `lemur/style.py`, `lemur/master.py`, `lemur/themes/` | the design box, `style.py` API, shipped themes |
 | `lemur/anim/` | `lemur.anim`: shapes, animations, 3‑D views, the keyframe IR |
-| `lemur/assets/svg/` | the player of an `lmr2svg` deck (`runtime.js`, `world.js`, `shader.js`) |
+| `lemur/wgsl.py` | reads a `!compute` program's buffers and kernels at build time |
+| `lemur/assets/svg/` | the player of an `lmr2svg` deck (`runtime.js`, `world.js`, `shader.js`, `compute.js`) |
 | `lemur/assets/` | runtime, CSS, themes and fonts of `lmr2slides` decks |
 | `spec/` | the language spec, the AST schema, the display contract |

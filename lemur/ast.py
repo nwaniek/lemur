@@ -26,7 +26,7 @@ AST_VERSION = 1
 BLOCK_TYPES = frozenset({
     "pagebreak", "heading", "para", "list", "code", "math", "table", "figure",
     "columns", "stack", "env", "style", "annotate", "connect", "spacer",
-    "notes", "bibliography", "embed", "anim", "plot", "shader",
+    "notes", "bibliography", "embed", "anim", "plot", "shader", "compute",
 })
 INLINE_TYPES = frozenset({
     "text", "strong", "emph", "strike", "underline", "code", "math", "link",

@@ -22,6 +22,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",   # writes .nojekyll, so GitHub Pages serves _static/ and _lemur/
     "sphinx_copybutton",
     "lemurdoc",
 ]
