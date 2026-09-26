@@ -986,11 +986,12 @@ def _load_figure(path: str):
         raise OSError(f"cannot import plot module: {path}")
     mod = importlib.util.module_from_spec(spec)
     here = os.path.dirname(os.path.abspath(path))    # so the module can import siblings
+    _forget_siblings(here)
     added = here not in sys.path
     if added:
         sys.path.insert(0, here)
     try:
-        spec.loader.exec_module(mod)
+        _exec_fresh(spec, mod)
     finally:
         if added:
             sys.path.remove(here)
@@ -1645,7 +1646,36 @@ def _draw_arrows(fx: _Fx, blocks) -> None:
 _ANIM_SEQ = 0            # unique clip/id counter across every slide on the page
 
 
-def _load_anim(path: str) -> dict:
+def _forget_siblings(here: str) -> None:
+    """Drop the modules imported from folder *here*, so that a helper next to an
+    animation or plot is imported afresh: it may have changed since the last
+    build (live reload, the animation viewer). A module of the same name cached
+    from another folder (two decks, each with a ``helper.py``) goes too, since
+    *here* comes first on the import path."""
+    try:
+        local = {e.name[:-3] if e.name.endswith(".py") else e.name for e in os.scandir(here)
+                 if e.name.endswith(".py") or os.path.isfile(os.path.join(e.path, "__init__.py"))}
+    except OSError:
+        local = set()
+    for name, m in list(sys.modules.items()):
+        f = getattr(m, "__file__", None)
+        if f and (os.path.dirname(os.path.abspath(f)) == here or name.split(".")[0] in local):
+            del sys.modules[name]
+
+
+def _exec_fresh(spec, mod) -> None:
+    """Run a module without writing bytecode for it or its siblings: a cached
+    .pyc is keyed on the source's size and mtime in whole seconds, so a quick
+    same-length edit (``1.0`` → ``2.0``) would otherwise be missed."""
+    keep = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.dont_write_bytecode = keep
+
+
+def _load_anim(path: str, cls_name: "str | None" = None) -> dict:
     """Import an `!anim` `!src` module, find its ``Anim`` subclass, and run it —
     returning the keyframe IR (``{nodes, tracks, duration, beats, camera, defs}``)."""
     import importlib.util
@@ -1660,11 +1690,12 @@ def _load_anim(path: str) -> dict:
         raise OSError(f"cannot import animation module: {path}")
     mod = importlib.util.module_from_spec(spec)
     here = os.path.dirname(os.path.abspath(path))    # so the module can import siblings
+    _forget_siblings(here)
     added = here not in sys.path
     if added:
         sys.path.insert(0, here)
     try:
-        spec.loader.exec_module(mod)
+        _exec_fresh(spec, mod)
     finally:
         if added:
             sys.path.remove(here)
@@ -1673,6 +1704,12 @@ def _load_anim(path: str) -> dict:
         anims = [v for v in vars(mod).values()
                  if isinstance(v, type) and issubclass(v, Anim) and v is not Anim]
     anims = [a for a in anims if getattr(a, "enabled", True)]   # `enabled = False` opts out
+    if cls_name:
+        chosen = [a for a in anims if a.__name__ == cls_name]
+        if not chosen:
+            raise ValueError(f"no Anim subclass {cls_name!r} in {path} "
+                             f"(have: {', '.join(a.__name__ for a in anims) or 'none'})")
+        return chosen[-1]().render()
     if not anims:
         raise ValueError(f"no enabled Anim subclass found in {path}")
     return anims[-1]().render()                       # the last one defined wins
@@ -2128,6 +2165,56 @@ def logo(ctx: Ctx) -> None:
     w = min(h * ar, ctx.design.width * 0.3)
     h = w / ar
     ctx.slide.add_image(ctx.design.width - ctx.design.body_region.x - w, 0.30 * _pad_y(ctx.design), w, h, href)
+
+
+#: the lemur logo (one path in ``currentColor``), drawn by `!madewith` beside
+#: its wordmark and in the same colour (the wordmark alone when the file is missing)
+LEMUR_LOGO = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "logo.svg")
+
+
+def _is_dark(color) -> bool:
+    """Whether a ``#rgb``/``#rrggbb`` colour is dark (relative luminance < 0.4)."""
+    c = str(color or "").lstrip("#")
+    if len(c) in (3, 4):
+        c = "".join(ch * 2 for ch in c[:3])
+    try:
+        r, g, b = (int(c[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    except ValueError:
+        return False
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.4
+
+
+def madewith(ctx: Ctx) -> None:
+    """`!madewith`: the logo and "made with **lemur**", small, in the bottom-left
+    corner of the first slide, on the footer's baseline (the right corner is the
+    player's). Drawn over whatever the slide's template drew, so it works with
+    every theme and custom cover."""
+    d = ctx.design
+    fs = 0.45 * d.body_size
+    left = d.body_region.x
+    bottom = d.height - 0.42 * _pad_y(d)
+    color = d.caption
+    if _is_dark(ctx.slide.bg) != _is_dark(d.bg):      # a custom cover changed the background
+        color = "#b9c2cd" if _is_dark(ctx.slide.bg) else "#5b6470"
+    nodes = [{"type": "text", "value": "made with "},
+             {"type": "strong", "content": [{"type": "text", "value": "lemur"}]}]
+    lh = LH_BLOCK * fs
+    try:
+        with open(LEMUR_LOGO, encoding="utf-8") as fh:
+            mark = fh.read().strip().replace("currentColor", color)
+        vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', mark).group(1).replace(",", " ").split()]
+    except (OSError, AttributeError, ValueError):
+        mark = None
+    if not mark:
+        _chrome_text(ctx, nodes, fs, left, d.width - 2 * left, bottom - lh, color)
+        return
+    h = 2.4 * fs
+    w = h * vb[2] / vb[3]
+    # vector like the rest of the slide: the logo's own <svg>, nested in place
+    ctx.slide.add_overlay(mark.replace("<svg ", f'<svg x="{fmt(left)}" y="{fmt(bottom - h)}" '
+                                               f'width="{fmt(w)}" height="{fmt(h)}" ', 1))
+    tx = left + w + 0.45 * fs
+    _chrome_text(ctx, nodes, fs, tx, d.width - left - tx, bottom - h / 2 - lh / 2, color)
 
 
 def footer(ctx: Ctx) -> None:
@@ -2641,20 +2728,22 @@ def _resolve_refs(obj, labels: dict, texts: dict, bib: dict, problems: list) -> 
 
 
 def build_html(path: str, live_reload: bool = False, design: "Design | None" = None,
-               style: "str | None" = None) -> tuple[str, tuple[int, int]]:
+               style: "str | None" = None, preload: "dict | None" = None) -> tuple[str, tuple[int, int]]:
     """Parse ``path`` and return ``(html, (placements, distinct_outlines))``.
 
     The single source of truth for both the file build and the dev server.
     Design resolution: an explicit ``design`` > a **style.py** (``style`` path,
     else one next to the deck — it defines the design box *and* registers its
     templates) > the deck's ``!theme`` (shipped, or ``themes/<name>/`` next to
-    the deck) > the default."""
+    the deck) > the default. ``preload`` seeds the per-build memo (the animation
+    viewer runs an ``!anim`` module itself, to catch its traceback and output)."""
     ast = deck_to_ast(Parser(load_lines(path)).parse())
     meta = ast.get("meta", {})
     pres = ast.get("presentation", {}) or {}   # deck chrome/transition/theme/aspect
     doc_dir = os.path.dirname(os.path.abspath(path))
     _saved_templates = dict(_TEMPLATES)        # this build's registrations must not leak
     _BUILD_MEMO.clear()
+    _BUILD_MEMO.update(preload or {})
     _USES_SHADERS[0] = False
     _USES_WORLD[0] = False
     _USES_COMPUTE[0] = False
@@ -2712,11 +2801,14 @@ def _build_html(path, ast, meta, pres, doc_dir, live_reload, design, style):
         slide = Slide(design.width, design.height, d.bg)
         render_fn = _template_for(role, [tvar] if tvar else None)
         try:
-            render_fn(Ctx(slide=slide, design=d, serif=serif, mono=mono, text_style=ts,
-                          title=title, blocks=blocks, role=role, meta=meta, doc_dir=doc_dir,
-                          number=i if has_cover else i + 1, total=numbered, pres=pres,
-                          mods=frozenset(mods), show_number=show_number,
-                          title_inline=title_inline, bib=bib))
+            ctx = Ctx(slide=slide, design=d, serif=serif, mono=mono, text_style=ts,
+                      title=title, blocks=blocks, role=role, meta=meta, doc_dir=doc_dir,
+                      number=i if has_cover else i + 1, total=numbered, pres=pres,
+                      mods=frozenset(mods), show_number=show_number,
+                      title_inline=title_inline, bib=bib)
+            render_fn(ctx)
+            if i == 0 and pres.get("madeWith"):
+                madewith(ctx)
         except (latex.LatexError, pango.PangoUnavailable):
             raise
         except Exception as exc:  # a bug or a broken user template: report the slide, keep going

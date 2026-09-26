@@ -2,6 +2,7 @@
 %% a bibliography from ^key: entries. Angle brackets make a link.
 %%   lmr2svg examples/references/deck.lmr -o references.html
 !title References
+!madewith
 
 !slide Definitions ^defs
 

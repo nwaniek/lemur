@@ -2,6 +2,7 @@
 %% shaded surfaces, silhouettes, haloed vectors (see ill.py and style.py). Build:
 %%   python3 lmr2svg.py examples/tangent-space-illustrated/deck.lmr -o tangent-space-illustrated.html
 !title The Tangent Space
+!madewith
 !subtitle …or why a dome looks flat to an ant — illustrated
 !author lemur examples
 

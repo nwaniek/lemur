@@ -1,6 +1,7 @@
 %% Animated calculus & fields (lemur.anim): Taylor, Fourier, Riemann, a vector
 %% field, and the derivative — with text and formulas baked in.
 !title Calculus, animated
+!madewith
 
 !slide Taylor series: approximating sin x
 

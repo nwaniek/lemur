@@ -1,6 +1,7 @@
 %% Bullet, ordered, and nested lists.
 %%   lmr2svg examples/lists/deck.lmr -o lists.html
 !title Lists
+!madewith
 
 !slide Bullet and ordered
 

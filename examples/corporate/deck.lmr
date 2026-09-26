@@ -2,6 +2,7 @@
 %% (next to this file), so lmr2svg picks them up automatically:
 %%   lmr2svg examples/corporate/deck.lmr -o corporate.html
 !title Quarterly Review
+!madewith
 !subtitle Message Passing Division
 !author R. Example
 !institute Acme Research

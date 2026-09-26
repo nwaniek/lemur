@@ -1,6 +1,7 @@
 %% Mathematics: inline and display, rendered to baked SVG outlines via LaTeX.
 %%   lmr2svg examples/math/deck.lmr -o math.html
 !title Mathematics
+!madewith
 
 !slide Inline and display
 

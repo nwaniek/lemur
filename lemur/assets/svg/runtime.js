@@ -291,6 +291,7 @@
   var players = slides.map(function (s) {
     return [].slice.call(s.querySelectorAll('.lmr-anim')).map(function (el) { return new AnimPlayer(el); });
   });
+  window.LMR_PLAYERS = players;            // for tools that drive the animations (the viewer)
   // Printing shows every animation at its end, drawn as vectors (never a canvas).
   addEventListener('beforeprint', function () {
     players.forEach(function (list) { list.forEach(function (p) {

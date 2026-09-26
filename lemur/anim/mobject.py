@@ -12,6 +12,8 @@ renderer recovers a compact SVG ``transform`` afterwards where it can.
 from __future__ import annotations
 
 import itertools
+import os
+import sys
 from typing import Callable, Iterable, Iterator, Sequence
 
 import numpy as np
@@ -58,6 +60,22 @@ class GlyphRef:
 # Shape
 # ==========================================================================
 
+#: When True (the animation viewer sets it), every shape remembers the line of
+#: the author's code that created it, so the viewer can jump there.
+TRACK_SOURCE = False
+_PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))     # the lemur package
+
+
+def _creation_site():
+    """``(file, line)`` of the nearest caller outside the lemur package."""
+    f = sys._getframe(2)
+    while f is not None:
+        fn = f.f_code.co_filename
+        if not os.path.abspath(fn).startswith(_PKG + os.sep):
+            return (fn, f.f_lineno)
+        f = f.f_back
+    return None
+
 
 class Shape:
     """A node in the scene graph."""
@@ -71,6 +89,7 @@ class Shape:
         #: Ignore the camera and stay put on screen.  Slide furniture (title,
         #: page number) uses this so a zoom does not carry it off the edge.
         self.fixed_in_frame = False
+        self._lmr_src = _creation_site() if TRACK_SOURCE else None
         if submobjects:
             self.add(*submobjects)
 

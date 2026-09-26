@@ -3,6 +3,7 @@
 %% a default that this overrides.
 %%   lmr2svg examples/transitions/deck.lmr -o transitions.html
 !title Transitions and reveals
+!madewith
 !transition slide rise
 
 !slide Step reveals

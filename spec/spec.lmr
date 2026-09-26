@@ -540,7 +540,8 @@ with no space. A language colorizes the code.
 Configuration (before the first slide): `!title`, `!subtitle`, `!author`,
 `!institute`, `!date`, `!titleimage`, `!logo <path>`, `!header <text>`,
 `!footer <text>`, `!slidenumbers <on|off>`, `!progress [top|bottom]` (a thin
-progress bar along that edge), `!theme <name>`,
+progress bar along that edge), `!madewith` (a small "made with lemur" mark on
+the title slide), `!theme <name>`,
 `!transition <slide> [<step>]` (across-slide `none|fade|slide|push` — `slide`
 moves the whole slide, `push` only the content so the chrome stays; within-slide
 step `none|fade|rise`), `!aspect <16:9|4:3>`. The

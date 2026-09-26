@@ -370,6 +370,13 @@ html, body { margin: 0; height: 100%; }
   background: var(--lmr-footer-bg);
 }
 .stage .lmr-pageno { font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* '!madewith': logo + "made with lemur", bottom-left of the first slide */
+.stage .lmr-madewith {
+  position: absolute; left: var(--lmr-chrome-x); bottom: var(--lmr-footer-bottom);
+  display: flex; align-items: center; gap: 0.45em;
+  font-size: calc(0.9 * var(--lmr-chrome-size)); color: var(--lmr-muted); text-align: left;
+}
+.stage .lmr-madewith svg { height: 2.4em; width: auto; }
 
 /* corporate logo (item 6): sits in the stage's chrome zone, positioned by
    tokens (default top-right corner). Emitted on content slides; '.plain' and

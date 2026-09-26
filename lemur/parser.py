@@ -49,7 +49,7 @@ revealed step by step. '!mode replace' switches from overlay to replacement.
 
 Document configuration (before the first slide):
     !title / !subtitle / !author / !institute / !date / !titleimage / !logo
-    !header / !footer / !slidenumbers <on|off>
+    !header / !footer / !slidenumbers <on|off> / !madewith [off]
     !theme <name> / !transition <none|fade> / !aspect <16:9|4:3>
 
 Usage:
@@ -222,7 +222,7 @@ RE_GAP_SIZE = re.compile(r"[\d.]+(px|em|rem|ex|ch|vh|vw|%)?")
 
 META_KEYS = {"title", "subtitle", "author", "date", "theme", "transition",
              "aspect", "institute", "titleimage",
-             "header", "footer", "slidenumbers", "logo", "progress"}
+             "header", "footer", "slidenumbers", "logo", "progress", "madewith"}
 
 # Semantic environments: a fixed, curated set the parser knows (no user-defined
 # environments — that macro system is deliberately out of scope). Each is a
@@ -2107,6 +2107,10 @@ def presentation_ast(meta: dict, refs: dict) -> dict:
         out["slideNumbers"] = meta["slidenumbers"].lower() != "off"
     if meta.get("titleimage"):
         out["titleImage"] = meta["titleimage"]
+    # '!madewith': a small "made with lemur" mark on the first slide
+    mw = meta.get("madewith")
+    if mw is not None and mw.strip().lower() != "off":
+        out["madeWith"] = True
     # progress bar: '!progress [top|bottom]' -> a hint; '!progress off' / absent
     # leaves it off. A bare '!progress' means on with the default placement.
     prog = meta.get("progress")

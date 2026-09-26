@@ -288,6 +288,20 @@ class TestDeck(unittest.TestCase):
         cover = deck.html[:deck.html.index("</section>") + 10]
         self.assertNotIn("lmr-footer", cover)
 
+    def test_madewith_marks_the_first_slide_only(self):
+        body = [{"type": "pagebreak", "title": [T("One")]}, {"type": "pagebreak", "title": [T("Two")]}]
+        deck = R.render_deck({"astVersion": 1, "meta": {"title": "T"},
+                              "presentation": {"madeWith": True}, "body": body})
+        self.assertEqual(deck.html.count("lmr-madewith"), 1)
+        cover = deck.html[:deck.html.index("</section>") + 10]
+        self.assertIn("made with <b>lemur</b>", cover)
+        self.assertIn('fill="currentColor"', cover)                     # the logo takes the text colour
+        deck = R.render_deck({"astVersion": 1, "meta": {},            # no cover: the first slide
+                              "presentation": {"madeWith": True}, "body": body})
+        first = deck.html[:deck.html.index("</section>") + 10]
+        self.assertIn("lmr-madewith", first)
+        self.assertEqual(deck.html.count("lmr-madewith"), 1)
+
     def test_section_page_no_header_or_logo(self):
         deck = R.render_deck({
             "astVersion": 1, "meta": {},

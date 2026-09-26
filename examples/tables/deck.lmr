@@ -1,6 +1,7 @@
 %% Tables: columns measured from content, per-column alignment, a caption.
 %%   lmr2svg examples/tables/deck.lmr -o tables.html
 !title Tables
+!madewith
 
 !slide A measured table
 

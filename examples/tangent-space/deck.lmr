@@ -2,6 +2,7 @@
 %% Build:
 %%   python3 lmr2svg.py examples/tangent-space/deck.lmr -o tangent-space.html
 !title The Tangent Space
+!madewith
 !subtitle …or why a dome looks flat to an ant
 !author lemur examples
 !theme dark

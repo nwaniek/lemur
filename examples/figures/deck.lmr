@@ -1,6 +1,7 @@
 %% Figures: a raster/SVG image embedded as a self-contained data URI.
 %%   lmr2svg examples/figures/deck.lmr -o figures.html
 !title Figures
+!madewith
 
 !slide An embedded figure
 

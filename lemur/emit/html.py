@@ -508,7 +508,20 @@ def collect_symbols(body) -> dict:
     return ctx
 
 
-def render_cover(meta, pres) -> str:
+def madewith_el() -> str:
+    """`!madewith`: the logo (inline SVG in ``currentColor``, so it takes the
+    wordmark's colour) and "made with **lemur**", for the bottom-left corner of
+    the first slide."""
+    import os
+    logo = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "logo.svg")
+    mark = None
+    if os.path.exists(logo):
+        with open(logo, encoding="utf-8") as fh:
+            mark = fh.read().strip().replace("<svg ", '<svg aria-hidden="true" ', 1)
+    return el("div", "lmr-madewith", mark, el("span", None, "made with ", el("b", {"text": "lemur"})))
+
+
+def render_cover(meta, pres, badge=None) -> str:
     byline = [x for x in ([*meta.get("authors", []), meta.get("affiliation"),
                            meta.get("date")]) if x]
     content = el("div", "stage-content",
@@ -521,10 +534,10 @@ def render_cover(meta, pres) -> str:
                  (el("p", {"class": "lmr-byline", "text": " · ".join(byline)})
                   if byline else None))
     return el("section", {"class": "slide cover", "aria-roledescription": "slide"},
-              el("div", "stage", el("div", "layer-bg"), content))
+              el("div", "stage", el("div", "layer-bg"), content, badge))
 
 
-def render_slide(page, number, ctx, chrome) -> str:
+def render_slide(page, number, ctx, chrome, badge=None) -> str:
     pb = page["pb"]
     kind = pb.get("role") or "content"
     variant = (" " + " ".join(pb["variant"])) if pb.get("variant") else ""
@@ -557,7 +570,7 @@ def render_slide(page, number, ctx, chrome) -> str:
                if show_chrome and chrome["logo"] else None)
     chrome_layer = (el("div", "layer-chrome", header_el, logo_el, footer)
                     if (header_el or logo_el or footer) else None)
-    stage = el("div", "stage", el("div", "layer-bg"), content, chrome_layer)
+    stage = el("div", "stage", el("div", "layer-bg"), content, chrome_layer, badge)
 
     ident = pb.get("id") or f"{slugify(inline_text(pb.get('title')))}-{number}"
     cls = f"slide {kind}{variant}{' has-fill' if has_fill else ''}"
@@ -595,8 +608,10 @@ def render_deck(doc) -> Deck:
     pages = paginate(body)
     ctx["total"] = len(pages)
     out = []
+    badge = madewith_el() if pres.get("madeWith") else None
     if meta.get("title"):
-        out.append(render_cover(meta, pres))
+        out.append(render_cover(meta, pres, badge))
+        badge = None
     for i, page in enumerate(pages):
-        out.append(render_slide(page, i + 1, ctx, chrome))
+        out.append(render_slide(page, i + 1, ctx, chrome, badge if i == 0 else None))
     return Deck(w, h, attrs, "".join(out))

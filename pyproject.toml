@@ -19,6 +19,7 @@ keywords = ["markup", "slides", "presentation", "latex", "markdown", "restructur
 lmr2ast    = "lemur.parser:main"
 lmr2slides = "lemur.emit.slides:main"
 lmr2svg    = "lemur.emit.svg:main"
+lmranim    = "lemur.animview:main"
 
 # The parser and the emitters' core are stdlib-only — no runtime dependencies.
 # The build-time SVG emitter (lemur.emit.svg) is the exception: it renders text

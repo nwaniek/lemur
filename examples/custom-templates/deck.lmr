@@ -3,6 +3,7 @@
 %% auto-loads style.py:
 %%   lmr2svg examples/custom-templates/deck.lmr -o custom.html
 !title Custom Templates
+!madewith
 
 !slide Regular content slide
 

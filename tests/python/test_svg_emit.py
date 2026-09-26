@@ -449,6 +449,42 @@ class SvgAnnotateThemeTest(unittest.TestCase):
         self.assertIn('fill="#0d1117"', html)             # dark theme bg
 
 
+@unittest.skipUnless(_HAVE_PANGO, "needs Pango (PyGObject)")
+class SvgMadeWithTest(unittest.TestCase):
+    """`!madewith`: the wordmark (and the logo, when the package has one) on the
+    first slide only."""
+
+    def build(self, config: str, logo: str) -> "tuple[str, int]":
+        with tempfile.TemporaryDirectory(prefix="lemur-madewith-") as d:
+            src = os.path.join(d, "deck.lmr")
+            with open(src, "w", encoding="utf-8") as fh:
+                fh.write(config + "\n!slide One\n\nx\n\n!slide Two\n\ny\n")
+            keep, svg.LEMUR_LOGO = svg.LEMUR_LOGO, logo
+            try:
+                page, (placements, _) = svg.build_html(src)
+            finally:
+                svg.LEMUR_LOGO = keep
+        return page, placements
+
+    def test_wordmark_and_logo_on_the_first_slide(self):
+        with tempfile.TemporaryDirectory(prefix="lemur-logo-") as d:
+            logo = os.path.join(d, "logo.svg")
+            with open(logo, "w", encoding="utf-8") as fh:
+                fh.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 10">'
+                         '<rect width="20" height="10" fill="currentColor"/></svg>')
+            plain, n0 = self.build("!title T", logo)
+            marked, n1 = self.build("!title T\n!madewith", logo)
+            bare, n2 = self.build("!title T\n!madewith", os.path.join(d, "missing.svg"))
+        self.assertGreater(n1, n0)                     # the wordmark's glyphs
+        self.assertEqual(n1, n2)                       # the same text, with or without the logo
+        self.assertNotIn("<image", marked)             # the logo is vector, in place
+        slides = marked.split('class="slide"')
+        self.assertEqual(sum('viewBox="0 0 20 10"' in sl for sl in slides), 1)   # on the first slide only
+        self.assertIn('viewBox="0 0 20 10"', slides[1])
+        self.assertNotIn("currentColor", marked)                   # tinted like the wordmark
+        self.assertNotIn('viewBox="0 0 20 10"', bare)
+
+
 class SvgEmitSkipGuardTest(unittest.TestCase):
     """A smoke test that always runs: the emitter module imports without the
     native deps present (they are only touched at build time)."""

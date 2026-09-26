@@ -1,6 +1,7 @@
 %% Animated scientific figures (lemur.anim): traces, areas, 3D — baked to SVG.
 %%   lmr2svg examples/anim-science/deck.lmr -o anim-science.html
 !title Animated figures
+!madewith
 
 !slide The Lorenz attractor, traced over time
 

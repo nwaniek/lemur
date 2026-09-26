@@ -1,6 +1,7 @@
 %% Semantic environments: theorem/proof/definition/... (titled, ruled, nestable).
 %%   lmr2svg examples/environments/deck.lmr -o environments.html
 !title Semantic environments
+!madewith
 
 !slide Theorem and proof
 

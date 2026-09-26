@@ -1,6 +1,7 @@
 %% Plots: publication-quality figures via matplotlib, baked to self-contained SVG.
 %%   lmr2svg examples/plots/deck.lmr -o plots.html   (needs lemur[plot])
 !title Plots
+!madewith
 
 !slide Scatter with a fit
 

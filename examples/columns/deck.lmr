@@ -1,6 +1,7 @@
 %% Columns (weight-split regions) and stacks (overlaid, step-swapped layers).
 %%   lmr2svg examples/columns/deck.lmr -o columns.html
 !title Columns and stacks
+!madewith
 
 !slide Two columns
 

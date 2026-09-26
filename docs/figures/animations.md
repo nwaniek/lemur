@@ -99,6 +99,13 @@ same LaTeX as the rest of the deck), `Title`, `BulletList`, `Paragraph`.
 The complete list, with signatures, is in the
 [`lemur.anim` reference](../reference/api-anim.rst).
 
+```{tip}
+While you write an animation, open it in the animation viewer,
+`lmranim hello.py`. It shows the animation alone with a timeline, rebuilds it on
+every save and takes you from a shape to the line that made it. See
+[Designing animations](viewer.md).
+```
+
 ## Things that follow a value
 
 Complex motion is easiest when shapes *follow* a number rather than being

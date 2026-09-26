@@ -30,3 +30,6 @@ table.support td:first-child, table.support th:first-child { text-align: left; }
 
 /* landing page */
 .lemur-hero { font-size: 1.15em; }
+
+/* the logo above the site name: present, not dominant */
+.sidebar-logo { max-width: 55%; }

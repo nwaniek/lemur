@@ -1,6 +1,7 @@
 %% Optimal transport on a curved surface, told with a particle system.
 %% Build:  python3 lmr2svg.py examples/optimal-transport/deck.lmr -o optimal-transport.html
 !title Moving Sand on a Sphere
+!madewith
 !subtitle Optimal transport on curved surfaces, one grain at a time
 !author lemur examples
 

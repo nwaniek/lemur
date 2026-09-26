@@ -1,6 +1,7 @@
 %% 3D animation: build-time orthographic 3D, baked to morph tracks.
 %%   lmr2svg examples/animation3d/deck.lmr -o animation3d.html
 !title 3D animation
+!madewith
 
 !slide From the complex plane to a 3D oscillation
 

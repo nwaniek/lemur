@@ -2,6 +2,7 @@
 %% illustrated like a paper figure, with exact vector stills for print and PDF.
 %%   lmr2svg examples/torus/deck.lmr -o torus.html
 !title Curvature on a Torus
+!madewith
 !subtitle shape, frames, curvature and geodesics
 !author lemur examples
 !theme journal

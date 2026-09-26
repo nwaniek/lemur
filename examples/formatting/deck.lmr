@@ -1,6 +1,7 @@
 %% Inline formatting and smart typography.
 %%   lmr2svg examples/formatting/deck.lmr -o formatting.html
 !title Text formatting
+!madewith
 
 !slide Inline styles
 

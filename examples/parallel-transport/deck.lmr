@@ -2,6 +2,7 @@
 %% and holonomy (a vector that comes back rotated). Build:
 %%   lmr2svg examples/parallel-transport/deck.lmr -o parallel-transport.html
 !title Parallel Transport
+!madewith
 
 !slide The question
 

@@ -1,6 +1,7 @@
 %% 3D building blocks (lemur.anim.View + decorate): a wireframe surface, one
 %% attractor in several synchronised views, and perspective projection.
 !title 3D building blocks
+!madewith
 
 !slide An orbiting surface
 

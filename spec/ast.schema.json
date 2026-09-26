@@ -65,6 +65,7 @@
         "footer": { "$ref": "#/$defs/inlineSeq" },
         "logo": { "type": "string", "description": "Path/URL to a logo asset (chrome hint)." },
         "slideNumbers": { "type": "boolean" },
+        "madeWith": { "type": "boolean", "description": "Mark the first slide as made with lemur (a small logo and wordmark), if the emitter supports it." },
         "titleImage": { "type": "string", "description": "Image for a synthesized title page, if the emitter makes one." }
       }
     },

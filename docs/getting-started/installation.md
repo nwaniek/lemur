@@ -33,8 +33,8 @@ $ pip install -e '.[svg]'           # lmr2svg and its Python dependencies
 $ pip install -e '.[svg,plot]'      # … plus matplotlib for !plot
 ```
 
-This installs three commands: `lmr2svg`, `lmr2slides` and `lmr2ast`. You can
-also run them straight from the checkout without installing:
+This installs four commands: `lmr2svg`, `lmranim` (the animation viewer),
+`lmr2slides` and `lmr2ast`. You can also run them straight from the checkout without installing:
 
 ```console
 $ python3 lmr2svg.py talk.lmr -o talk.html

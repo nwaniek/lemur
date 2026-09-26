@@ -31,7 +31,7 @@ everywhere, needs no network, and supports the whole language.
 | environments | ✓ | ✓ |
 | `!annotate`, `!connect` | ✓ | ✓ |
 | references, citations, bibliography, links | ✓ | ✓ |
-| title slide, header, footer, logo, slide numbers, progress bar | ✓ | ✓ |
+| title slide, header, footer, logo, slide numbers, progress bar, `!madewith` | ✓ | ✓ |
 | transitions (`!transition`) | ✓ | ✓ |
 | per-slide classes `.center .middle .plain .fill` | ✓ | ✓ |
 | per-slide class `.dark` | ✓ | — |

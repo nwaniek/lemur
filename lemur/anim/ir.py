@@ -498,6 +498,7 @@ def build_slide(rec: Recorder, defs: dict[str, str], duration: float) -> dict:
         node: dict = {"i": info.index, "z": round(info.z_index, 4)}
         if info.fixed:
             node["fix"] = 1
+        _add_src(node, info.mobject)
         if rigid and as_glyph and info.glyph_key:
             node["k"] = "use"
             node["ref"] = info.glyph_key
@@ -563,12 +564,21 @@ def build_slide(rec: Recorder, defs: dict[str, str], duration: float) -> dict:
     return out
 
 
+def _add_src(node: dict, mob) -> None:
+    """Where the author's code made this shape (only when the viewer tracks it)."""
+    src = getattr(mob, "_lmr_src", None)
+    if src is None:                          # a glyph of a Text: ask its parents' creator
+        return
+    node["at"] = [src[0], int(src[1])]
+
+
 def _world_node(rec: "Recorder", info: NodeInfo, spec):
     """A 3-D shape the player projects: its world geometry (``p3``), its rule,
     and the usual style tracks — no 2-D geometry at all."""
     samples = info.samples
     node: dict = {"i": info.index, "z": round(info.z_index, 4), "k": "w",
                   "w": rec.view_index(spec.view), "wk": spec.kind}
+    _add_src(node, info.mobject)
     if spec.rule:
         node["wr"] = spec.rule
     if spec.normal is not None:

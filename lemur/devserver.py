@@ -1,15 +1,14 @@
 """Live-reloading preview server for the SVG emitter.
 
-Watches the `.lmr` source (and sibling `.lmr` files it may include) and pushes a
-rebuild to the browser over Server-Sent Events. SSE is one-directional and in
+Watches the deck's folder (its `.lmr` files, animation and plot modules,
+shaders, images, style) and pushes a rebuild to the browser over Server-Sent
+Events. SSE is one-directional and in
 the standard library on both ends, so this needs no WebSocket dependency and no
-client-side framework. Leaving CSS behind means we lose browser-devtools
-iteration on layout; this restores a fast visual loop (Plan-SVG §6), and is how
-the layout engine is meant to be developed.
+client-side framework.
 
 Nothing here cares which editor you use: it is the *file on disk* that is
 watched. Save from anywhere and the browser catches up within a few hundred
-milliseconds. Mined from wanim's devserver (Plan-SVG §11).
+milliseconds.
 """
 
 from __future__ import annotations
@@ -88,14 +87,21 @@ class DeckBuilder:
 
     # -- watching ----------------------------------------------------------
 
+    #: what a deck is made of: its sources, animation and plot modules, shaders,
+    #: images, a style and a LaTeX preamble
+    WATCH_EXT = {".lmr", ".py", ".glsl", ".wgsl", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp",
+                 ".tex", ".css"}
+
     def watched_files(self) -> list[Path]:
         files = {self.source}
         sp = self.style or (self.source.parent / "style.py")   # editing style.py live-reloads
         if Path(sp).exists():
             files.add(Path(sp))
         try:
-            for p in self.source.parent.rglob("*.lmr"):
-                files.add(p)
+            for p in self.source.parent.rglob("*"):
+                if (p.suffix.lower() in self.WATCH_EXT and "__pycache__" not in p.parts
+                        and not p.name.endswith(".html") and p.is_file()):
+                    files.add(p)
         except OSError:
             pass
         return sorted(files)
@@ -205,7 +211,7 @@ def serve(source: str, host: str = "127.0.0.1", port: int = 8000, open_browser: 
 
     url = f"http://{host}:{server.server_address[1]}/"
     print(f"\n  serving {url}")
-    print(f"  watching {builder.source.parent}  (save a .lmr to rebuild)")
+    print(f"  watching {builder.source.parent}  (save any of its files to rebuild)")
     print("  press Ctrl-C to stop\n")
     if open_browser:
         threading.Timer(0.4, lambda: webbrowser.open(url)).start()

@@ -44,7 +44,11 @@ html_theme = "furo"
 html_title = "lemur"
 html_static_path = ["_static"]
 html_css_files = ["lemur.css"]
+html_favicon = "_static/logo-light.svg"
+# the lemur logo (lemur/assets/logo.svg) in the text colour of each mode
 html_theme_options = {
+    "light_logo": "logo-light.svg",
+    "dark_logo": "logo-dark.svg",
     "source_repository": "",
     "navigation_with_keys": True,
     "light_css_variables": {

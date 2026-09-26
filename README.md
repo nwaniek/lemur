@@ -70,7 +70,7 @@ lemur needs Python ≥ 3.10. The parser has no dependencies of its own. The
 pip install -e '.[svg]'          # add ,plot for matplotlib figures
 ```
 
-This installs the commands `lmr2svg`, `lmr2slides` and `lmr2ast`. You can also
+This installs the commands `lmr2svg`, `lmranim`, `lmr2slides` and `lmr2ast`. You can also
 run the tools straight from a checkout with `python3 lmr2svg.py …`.
 
 LaTeX results are cached on disk, so a rebuild only typesets what changed. The
@@ -82,6 +82,7 @@ cache lives in `$XDG_CACHE_HOME/lemur`, or in `$LEMUR_CACHE` if that is set.
 python3 lmr2svg.py talk.lmr -o talk.html     # build once
 python3 lmr2svg.py talk.lmr --watch          # serve with live reload while you write
 python3 lmr2svg.py talk.lmr --strict         # fail (exit 3) on any warning, e.g. in CI
+python3 lmranim.py hello.py                  # design one animation: timeline, rebuild on save
 ```
 
 Open `talk.html` in a browser. Other options:
@@ -273,6 +274,15 @@ class Hello(Anim):
         self.play(c.animate.shift(RIGHT * 2))
 ```
 
+While you write an animation, **`lmranim`** shows it on its own with a
+timeline. It rebuilds on every save and keeps the playhead where it was. You
+can step through beats and frames, loop one beat, and overlay a coordinate grid.
+Clicking a shape opens the line that created it in your editor:
+
+```sh
+LEMUR_EDITOR='vim --servername lemur --remote-silent +{line} {file}' lmranim hello.py
+```
+
 3‑D goes through a `View`, which is a camera plus a viewport on the slide:
 - **Building blocks:** curves, surfaces, lit and shaded meshes, solids, axes,
   labels pinned to 3‑D points, and moving curves.
@@ -341,6 +351,7 @@ and knows nothing about any output format. Emitters turn it into output.
 | `lmr2svg` | **one self-contained HTML file**: text and maths baked to SVG outlines at build time, a small player for steps, transitions, animations, shaders and compute programs. Supports the whole language. |
 | `lmr2slides` | an HTML/CSS deck *folder*: the slide DOM is written at build time, and maths is typeset in the browser by MathJax. It supports the core language and slide layer, but not `!plot`, `!anim`, `!shader` or `!compute`. |
 | `lmr2ast` | the AST as JSON, for inspection or for your own emitter |
+| `lmranim` | not an emitter: a live viewer for one `lemur.anim` module, with a timeline, rebuild on save and jump-to-source |
 
 ### `lmr2slides`
 
@@ -408,6 +419,7 @@ Layout of the package:
 | `lemur/typeset/` | Pango text, LaTeX maths, outline geometry, the on-disk cache |
 | `lemur/style.py`, `lemur/master.py`, `lemur/themes/` | the design box, `style.py` API, shipped themes |
 | `lemur/anim/` | `lemur.anim`: shapes, animations, 3‑D views, the keyframe IR |
+| `lemur/animview.py` | `lmranim`, the animation viewer (its page chrome is `assets/svg/animview.*`) |
 | `lemur/wgsl.py` | reads a `!compute` program's buffers and kernels at build time |
 | `lemur/assets/svg/` | the player of an `lmr2svg` deck (`runtime.js`, `world.js`, `gl.js`, `shader.js`, `compute.js`) |
 | `lemur/assets/` | runtime, CSS, themes and fonts of `lmr2slides` decks |

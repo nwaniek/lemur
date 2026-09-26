@@ -1,6 +1,6 @@
 # Command-line reference
 
-lemur installs three commands. Each is also a script at the top of the
+lemur installs four commands. Each is also a script at the top of the
 repository (`python3 lmr2svg.py …`).
 
 ## `lmr2svg`
@@ -30,6 +30,33 @@ lmr2svg [-h] [-o OUTPUT] [-s STYLE] [-t THEME] [-q {draft,low,medium,high,max}]
 
 Exit status: 0 on success; 1 when the input cannot be read or parsed, or when
 the theme is unknown; 3 with `--strict` when warnings were reported.
+
+## `lmranim`
+
+Opens one `lemur.anim` module in a live viewer with a timeline, rebuilds it on
+save and jumps from a shape to the line that made it. See
+[Designing animations](../figures/viewer.md).
+
+```text
+lmranim [-h] [-c CLASS] [-t THEME] [-s STYLE] [--aspect {16:9,4:3}]
+        [-e EDITOR] [-p PORT] [--no-open]
+        module
+```
+
+| Option | |
+|---|---|
+| `module` | the animation module (`.py`), the one a deck's `!anim` `!src` names |
+| `-c, --class CLASS` | the `Anim` class to show (default: the last one defined) |
+| `-t, --theme NAME` | the stage's theme, as for `lmr2svg` (default: `style.py` next to the module if present, else `clean`) |
+| `-s, --style FILE` | a `style.py` for the stage |
+| `--aspect RATIO` | the slide format, `16:9` or `4:3` |
+| `-e, --editor CMD` | the command that opens a file at a line, with `{file}` and `{line}` filled in (default: `$LEMUR_EDITOR`) |
+| `-p, --port PORT` | the port (default 8100) |
+| `--no-open` | don't open a browser |
+
+Exit status: 0 when stopped with Ctrl-C; 1 when the module does not exist. A
+module that fails to run does not stop the viewer: it shows the traceback until
+the next save.
 
 ## `lmr2slides`
 
@@ -65,4 +92,5 @@ $ lmr2ast talk.lmr > talk.json
 | Variable | |
 |---|---|
 | `LEMUR_THEMES` | extra folders to search for themes (separated by `:`, or `;` on Windows) |
+| `LEMUR_EDITOR` | the editor command for `lmranim` (see `--editor`) |
 | `LEMUR_CACHE` | where LaTeX results are cached (default `$XDG_CACHE_HOME/lemur`) |

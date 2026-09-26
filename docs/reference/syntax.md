@@ -45,7 +45,7 @@ Built-in style classes: `.bold`, `.italic`, `.underline`, `.strike`,
 
 `!title`, `!subtitle`, `!author`, `!institute`, `!date`, `!titleimage path`,
 `!logo path`, `!header text`, `!footer text`, `!slidenumbers on|off`,
-`!progress top|bottom`, `!theme name`, `!aspect 16:9|4:3`,
+`!progress top|bottom`, `!madewith`, `!theme name`, `!aspect 16:9|4:3`,
 `!transition none|fade|slide|push [none|fade|rise]`. Anywhere: `!include path.lmr`.
 
 ## Slides and structure

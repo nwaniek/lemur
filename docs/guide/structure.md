@@ -64,6 +64,7 @@ make the title slide (the *cover*), which is shown before the first slide:
 | `!footer text` | the footer text (default: the title) |
 | `!slidenumbers on\|off` | slide numbers in the footer (default: on) |
 | `!progress top\|bottom` | a thin progress bar along that edge |
+| `!madewith` | a small "made with lemur" mark with the lemur logo, bottom-left on the title slide |
 | `!theme name` | the design: see [Themes](../design/themes.md) |
 | `!aspect 16:9\|4:3` | the slide format (1920×1080 or 1440×1080) |
 | `!transition across [step]` | how slides change (`none`, `fade`, `slide`, `push`) and how steps reveal (`none`, `fade`, `rise`) |

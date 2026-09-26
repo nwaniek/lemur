@@ -105,6 +105,7 @@ design/templates
 
 figures/plots
 figures/animations
+figures/viewer
 figures/3d
 figures/illustrated
 figures/shaders

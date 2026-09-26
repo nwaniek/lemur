@@ -2,6 +2,7 @@
 %%   lmr2svg examples/compute/deck.lmr -o compute.html
 %% Needs a browser with WebGPU (current Chrome, Edge, Safari; Firefox on Windows).
 !title Thinking in Parallel
+!madewith
 !subtitle compute shaders on slides, running live on your GPU
 !theme dark
 

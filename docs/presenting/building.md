@@ -23,10 +23,12 @@ $ lmr2svg talk.lmr --watch
 
 `--watch` builds the deck, serves it on `http://127.0.0.1:8000` (change the port
 with `-p`), and opens a browser (unless `--no-open`). It then rebuilds whenever
-you save a `.lmr` file in the deck's folder (including included files) or its
-`style.py`. The page reloads itself and stays on the slide you were looking at.
-After changing an image, a `!plot` script or an `!anim` module, save the deck to
-trigger a rebuild.
+you save a file in the deck's folder: a `.lmr` file (including included files),
+its `style.py`, a `!plot` script or an `!anim` module, a shader or an image. The
+page reloads itself and stays on the slide you were looking at.
+
+To work on one animation, [`lmranim`](../figures/viewer.md) is quicker: it
+shows just that animation with a timeline and rebuilds only it.
 
 ## Diagnostics
 

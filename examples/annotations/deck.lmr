@@ -2,6 +2,7 @@
 %% draws an arrow between two marks. Arrows use real build-time glyph boxes.
 %%   lmr2svg examples/annotations/deck.lmr -o annotations.html
 !title Annotations
+!madewith
 
 !slide Annotate an equation
 

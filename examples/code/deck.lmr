@@ -1,6 +1,7 @@
 %% Code blocks: syntax highlighting and per-step line highlighting.
 %%   lmr2svg examples/code/deck.lmr -o code.html
 !title Code
+!madewith
 
 !slide A highlighted block
 

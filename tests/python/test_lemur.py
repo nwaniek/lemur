@@ -1657,6 +1657,13 @@ class TestAST(unittest.TestCase):
         self.assertIsNone(prog("!progress off\n!slide A\nx\n"))
         self.assertIsNone(prog("!slide A\nx\n"))
 
+    def test_madewith_hint(self):
+        def mw(src):
+            return deck_to_ast(parse(src)).get("presentation", {}).get("madeWith")
+        self.assertIs(mw("!madewith\n!slide A\nx\n"), True)
+        self.assertIsNone(mw("!madewith off\n!slide A\nx\n"))
+        self.assertIsNone(mw("!slide A\nx\n"))
+
     def test_parse_transition_new_values(self):
         self.assertEqual(parse_transition({"transition": "slide rise"}),
                          ("slide", "rise"))

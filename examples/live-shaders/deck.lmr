@@ -2,6 +2,7 @@
 %% Build:  python3 lmr2svg.py examples/live-shaders/deck.lmr -o live-shaders.html
 %% In the browser: → / Space step the scenes; press m for the soundtrack.
 !footer A World Made of Maths
+!madewith
 
 #[.plain] A World Made of Maths
 ## every pixel you see is computed live on your GPU — press → to wake the sky, m for sound
