@@ -97,7 +97,13 @@ body.ov-resizing { cursor: ew-resize; user-select: none; }
     width: 100%; height: 100vh; break-after: page; page-break-after: always; }
   [data-step] { opacity: 1 !important; transform: none !important; }   /* final state per slide: */
   [data-final="0"] { opacity: 0 !important; }                          /* …minus what is gone by then */
+  .lmr-gl { display: none !important; }                                 /* GPU views print as vectors */
+  .lmr-gv { display: inline !important; }
 }
+
+/* --- GPU views (`View(renderer="gpu")`, svg/gl.js) --------------------------- */
+.lmr-gl-box { width: 100%; height: 100%; position: relative; pointer-events: none; }
+.lmr-gl-box canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* --- live shaders (`!shader`, svg/shader.js) ------------------------------- */
 .lmr-shader-box, .lmr-compute-box { width: 100%; height: 100%; position: relative; overflow: hidden; background: #05070d; }

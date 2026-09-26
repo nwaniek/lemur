@@ -47,7 +47,7 @@ nothing that belongs to one output format.
 | `lemur.emit.svg` | pagination, templates (`content`, `cover`, `section`, and any registered in a `style.py`), annotations and connectors, figures, `!plot`, `!anim`, `!shader`, `!compute`, and assembly of the deck |
 | `lemur.render` | the slide as SVG: each distinct glyph outline is stored once and placed by reference; the step gates of every element |
 | `lemur.wgsl` | reads a `!compute` program's buffers and kernels out of its WGSL at build time |
-| `lemur/assets/svg/` | the player that ships in every deck: `runtime.js` (navigation, steps, transitions, the overview, the animation player), `world.js` (3‑D projection, only in decks that need it), `shader.js` (WebGL, only in decks with shaders) and `compute.js` (WebGPU, only in decks with `!compute`) |
+| `lemur/assets/svg/` | the player that ships in every deck: `runtime.js` (navigation, steps, transitions, the overview, the animation player), `world.js` (3‑D projection, meshes, hidden lines and vector stills, only in decks that need it), `gl.js` (the WebGL renderer, only in decks with GPU views), `shader.js` (WebGL, only in decks with shaders) and `compute.js` (WebGPU, only in decks with `!compute`) |
 
 Each slide becomes one inline SVG, with every element gated on the steps it is
 visible for. The player only switches visibility and runs animations; it never

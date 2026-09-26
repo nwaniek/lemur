@@ -40,7 +40,7 @@ from .mobject import VGroup, VShape
 from .shapes import Circle
 from .world import World
 
-__all__ = ["Palette", "PAPER", "NIGHT", "Sphere", "Figure", "unit", "slerp"]
+__all__ = ["Palette", "PAPER", "NIGHT", "Sphere", "Torus", "Figure", "unit", "slerp"]
 
 
 def unit(v):
@@ -120,6 +120,67 @@ class Sphere:
             return np.pi
         return float(np.arccos(np.clip((self.cap_z - self.c[2]) / self.R, -1.0, 1.0)))
 
+    flip = True                          # the parametrisation's normals point inward
+
+    def ranges(self):
+        return (0.0, 2 * np.pi), (0.0, self.v_max())
+
+    def analytic(self) -> dict:
+        """The player's analytic occluder (SVG views)."""
+        return {"c": [float(x) for x in self.c], "R": self.R,
+                "cap": None if self.cap_z is None else float(self.cap_z)}
+
+    def shadow_rings(self, rings: int):
+        """``(centre, z, inner, outer)`` per shadow ring on the ground."""
+        z = self.cap_z if self.cap_z is not None else self.c[2] - 1.08 * self.R
+        r0 = self.R if self.cap_z is not None else 0.8 * self.R
+        return [(self.c[:2], z, 0.0, r0 * (1.02 + 0.07 * k)) for k in range(rings)]
+
+
+class Torus:
+    """A solid torus as an occluder: tube radius ``r`` around a circle of radius
+    ``R`` in the plane ``z = center[2]``. Its hidden-line and hiding tests use
+    the drawn surface itself, so it needs a GPU view (``View(renderer="gpu")``)."""
+
+    flip = False
+
+    def __init__(self, R: float = 2.0, r: float = 0.75, center=(0.0, 0.0, 0.0)):
+        self.R, self.r = float(R), float(r)
+        self.c = np.asarray(center, dtype=float)
+        self._mesh = None
+
+    def surface(self, u, v):
+        """``u`` around the axis, ``v`` around the tube (0 = the outer equator)."""
+        return self.c + np.array([(self.R + self.r * np.cos(v)) * np.cos(u),
+                                  (self.R + self.r * np.cos(v)) * np.sin(u), self.r * np.sin(v)])
+
+    def ranges(self):
+        return (0.0, 2 * np.pi), (0.0, 2 * np.pi)
+
+    def analytic(self):
+        return None
+
+    def occludes(self, view, X) -> bool:
+        """Is ``X`` hidden behind the torus, seen from the camera? (Tested against
+        a fine mesh of it, the way the deck's player tests.)"""
+        from . import world as W
+
+        if self._mesh is None:
+            nu, nv = 96, 48
+            us = np.linspace(0, 2 * np.pi, nu + 1)
+            vs = np.linspace(0, 2 * np.pi, nv + 1)
+            P = np.array([self.surface(u, v) for u in us for v in vs])
+            idx = lambda i, j: i * (nv + 1) + j                                  # noqa: E731
+            faces = [[idx(i, j), idx(i + 1, j), idx(i + 1, j + 1), idx(i, j + 1)]
+                     for i in range(nu) for j in range(nv)]
+            self._mesh = {"meshes": [W.mesh_occluder(P, W.mesh_geo(P, faces))]}
+        return bool(W.occluded_many(self._mesh, W.camera_of(view), np.asarray(X, dtype=float).reshape(1, 3))[0])
+
+    def shadow_rings(self, rings: int):
+        z = self.c[2] - 1.02 * self.r
+        return [(self.c[:2], z, self.R - self.r * (0.85 + 0.12 * k), self.R + self.r * (0.85 + 0.12 * k))
+                for k in range(rings)]
+
 
 def _runs(flags, closed):
     n = len(flags)
@@ -150,9 +211,13 @@ class Figure:
         self.view = view
         self.occ = occluder
         self.pal = palette
+        self._solid = None
         if occluder is not None:           # the player's hidden-line / hide / ghost rules use it
-            view.occluder = {"c": [float(x) for x in occluder.c], "R": occluder.R,
-                             "cap": None if occluder.cap_z is None else float(occluder.cap_z)}
+            an = occluder.analytic()
+            if an is None and not getattr(view, "gpu", False):
+                raise ValueError(f"a {type(occluder).__name__} hides things only in a GPU view: "
+                                 f"View(..., renderer='gpu')")
+            view.occluder = an             # a GPU view uses its drawn surfaces instead
         self.light = light
         self.warm = warm
 
@@ -199,15 +264,17 @@ class Figure:
 
     # -- the solid ----------------------------------------------------------
 
-    def shaded(self, fn, u_range, v_range, nu=40, nv=10, flip=False, under=True, mesh=0.06):
+    def shaded(self, fn, u_range, v_range, nu=40, nv=10, flip=False, under=True, mesh=0.06,
+               tint=None, tint_mix=0.6):
         """A lit, opaque surface: a fine culled quad mesh over a coarse unculled
         copy (which fills the slivers culling leaves at the silhouette)."""
         v = self.view
         pal = self.pal
         shade = dict(light=self.light, colors=(pal.shade_dark, pal.shade_light), ambient=0.3,
-                     flip=flip, fill_light=(self.warm, pal.fill_light, 0.32) if self.warm else None)
+                     flip=flip, fill_light=(self.warm, pal.fill_light, 0.32) if self.warm else None,
+                     tint=tint, tint_mix=tint_mix)
         top = v.shaded_surface(fn, u_range, v_range, nu=nu, nv=nv, mesh=mesh, mesh_width=0.7, **shade)
-        if not under:
+        if not under or getattr(v, "gpu", False):          # a depth buffer needs no filler
             return VGroup(top)
         low = v.shaded_surface(fn, u_range, v_range, nu=max(nu // 3, 8), nv=max(nv // 3, 3), cull=False,
                                mesh=None, mesh_width=1.2, **shade)
@@ -215,17 +282,28 @@ class Figure:
             m.set_z_index(-1)
         return VGroup(low, top)
 
-    def solid(self, nu=40, nv=None):
-        """The occluder itself, shaded (a sphere or a dome)."""
+    def solid(self, nu=40, nv=None, tint=None, tint_mix=0.6):
+        """The occluder itself, shaded (a sphere, a dome, a torus); ``tint(u, v)``
+        colours it by a function of its parameters (see ``View.shaded_surface``)."""
         s = self.occ
-        vmax = s.v_max()
-        nv = nv or max(4, int(round(nu * vmax / (2 * np.pi))))
-        return self.shaded(lambda u, w: s.surface(u, w), (0.0, 2 * np.pi), (0.0, vmax), nu=nu, nv=nv, flip=True)
+        ur, vr = s.ranges()
+        nv = nv or max(4, int(round(nu * (vr[1] - vr[0]) / (ur[1] - ur[0]))))
+        g = self.shaded(lambda u, w: s.surface(u, w), ur, vr, nu=nu, nv=nv, flip=s.flip,
+                        tint=tint, tint_mix=tint_mix)
+        if getattr(self.view, "gpu", False):
+            self._solid = g.submobjects[-1]
+        return g
 
     def silhouette(self, width=2.6):
         """The occluder's outline for the current view: the limb (the great circle
-        seen edge-on) — for a dome its upper half plus the front of the base."""
+        seen edge-on) — for a dome its upper half plus the front of the base. In a
+        GPU view, the smooth outline of the drawn solid (call ``solid`` first)."""
         s, view = self.occ, self.view
+        if getattr(view, "gpu", False):
+            if self._solid is None:
+                raise ValueError("Figure.silhouette in a GPU view outlines the solid: call solid() first "
+                                 "(backdrop() does both)")
+            return VGroup(view.contour(self._solid, color=self.pal.ink, width=width))
 
         def limb():
             c = view.toward_camera()
@@ -259,6 +337,8 @@ class Figure:
         """A soft contact shadow: stacked, slightly larger translucent discs on
         the ground (``z``, default: under the occluder)."""
         s = self.occ
+        if getattr(self.view, "gpu", False):
+            return self._gpu_shadow(rings, z, alpha)
         z = (s.cap_z if s.cap_z is not None else s.c[2] - 1.08 * s.R) if z is None else z
         r0 = (radius or (s.R if s.cap_z is not None else 0.8 * s.R))
         g = VGroup()
@@ -269,6 +349,20 @@ class Figure:
             g.add(self.view.polygon(pts, fill_color=self.pal.shadow, fill_opacity=alpha, stroke_width=0))
         for m in g.family:
             m.set_z_index(-2)
+        return g
+
+    def _gpu_shadow(self, rings, z, alpha):
+        """The contact shadow as translucent rings (a torus casts an annulus)."""
+        g = VGroup()
+        n = 72
+        for (cx, cy), z0, inner, outer in self.occ.shadow_rings(rings):
+            zz = z0 if z is None else z
+            ang = np.linspace(0, 2 * np.pi, n, endpoint=False)
+            P = np.array([[cx + rr * np.cos(a), cy + rr * np.sin(a), zz] for rr in (inner, outer) for a in ang])
+            faces = [[i, (i + 1) % n, n + (i + 1) % n, n + i] for i in range(n)]
+            m = self.view.mesh(P, faces, self.pal.shadow, cull=False, occlude=False, fill_opacity=alpha)
+            m.set_z_index(-2)
+            g.add(m)
         return g
 
     def backdrop(self, nu=40):

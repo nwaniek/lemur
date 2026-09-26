@@ -70,7 +70,15 @@ class View:
     switches from parallel to a pinhole camera (nearer = bigger)."""
 
     def __init__(self, azim: float = 0.0, elev: float = 90.0, scale: float = 1.5,
-                 viewport=None, perspective: "float | None" = None, static: bool = False):
+                 viewport=None, perspective: "float | None" = None, static: bool = False,
+                 renderer: str = "svg"):
+        if renderer not in ("svg", "gpu"):
+            raise ValueError(f"renderer must be 'svg' or 'gpu', not {renderer!r}")
+        #: ``"gpu"``: the deck's player draws this view's 3-D shapes with WebGL,
+        #: with a depth buffer — so anything hides anything, surfaces of any shape
+        #: (a torus, a saddle) occlude, and meshes can be large. Labels and 2-D
+        #: shapes stay crisp SVG on top; print and PDF get an exact vector still.
+        self.renderer = renderer
         self.azim = ValueTracker(np.radians(azim))
         self.elev = ValueTracker(np.radians(elev))
         self.scale = float(scale)
@@ -326,12 +334,76 @@ class View:
         a, e = self.azim.get_value(), self.elev.get_value()
         return np.array([-np.sin(a) * np.cos(e), -np.cos(a) * np.cos(e), np.sin(e)])
 
+    @property
+    def gpu(self) -> bool:
+        return self.renderer == "gpu"
+
+    def mesh(self, vertices, faces, colors="#8fa9c4", cull: bool = True, edge=None,
+             occlude: bool = True, **style) -> VShape:
+        """A surface of flat faces for a GPU view: ``vertices`` (N×3, or a callable
+        returning them each frame), ``faces`` (F×4 quads or F×3 triangles, vertex
+        indices, counter-clockwise seen from outside), ``colors`` one colour or one
+        per face. With ``cull``, faces turned away are skipped; ``edge=(darken,
+        width)`` outlines each face a little darker (a fine mesh); ``occlude``
+        makes it hide what is behind it (hidden lines, hidden dots)."""
+        from .color import to_color
+        from . import world as W
+
+        if not self.gpu:
+            raise ValueError("View.mesh needs View(renderer='gpu')")
+        fn = vertices if callable(vertices) else (lambda v=np.asarray(vertices, dtype=float): v)
+        faces = np.asarray(faces, dtype=np.int64)
+        if faces.ndim != 2 or faces.shape[1] not in (3, 4):
+            raise ValueError("faces must be an F×3 (triangles) or F×4 (quads) array of vertex indices")
+        cols = [colors] * len(faces) if isinstance(colors, str) or not hasattr(colors, "__len__") \
+            else list(colors)
+        if len(cols) != len(faces):
+            raise ValueError(f"{len(cols)} colours for {len(faces)} faces")
+        rgb = np.array([to_color(c).rgb for c in cols], dtype=float)
+        style.setdefault("fill_color", cols[0])
+        style.setdefault("fill_opacity", 1.0)
+        style.setdefault("stroke_width", 0)
+        m = VShape(**style)
+
+        def upd(mm):
+            xy = W.project(W.camera_of(self), fn())
+            lo, hi = xy.min(axis=0), xy.max(axis=0)
+            mm.set_subpaths([bz.line_handles(np.array([lo, [hi[0], lo[1]], hi, [lo[0], hi[1]], lo]))], [True])
+
+        m.add_updater(upd)
+        m.world = World(self, "mesh", points=lambda: np.asarray(fn(), dtype=float).reshape(-1, 3),
+                        mesh={"faces": faces, "colors": rgb, "cull": bool(cull),
+                              "edge": None if edge is None else (float(edge[0]), float(edge[1])),
+                              "occlude": bool(occlude)})
+        return self._tag(m)
+
+    def contour(self, mesh: VShape, color: str = "#2b2d42", width: float = 2.6, **style) -> VShape:
+        """The outline of ``mesh`` for the current camera: its smooth silhouette and
+        open boundary, hidden parts left out — the crisp outline of a figure."""
+        from . import world as W
+
+        if getattr(getattr(mesh, "world", None), "kind", None) != "mesh":
+            raise ValueError("View.contour outlines a shape made by View.mesh / shaded_surface")
+        style.setdefault("stroke_width", width)
+        m = VShape(color=color, **style)
+        spec = mesh.world
+
+        def upd(mm):                     # for layout only: the mesh's projected bounds
+            xy = W.project(W.camera_of(self), spec.points())
+            lo, hi = xy.min(axis=0), xy.max(axis=0)
+            mm.set_subpaths([bz.line_handles(np.array([lo, [hi[0], lo[1]], hi, [lo[0], hi[1]], lo]))], [False])
+
+        m.add_updater(upd)
+        m.world = World(self, "contour", source=mesh)
+        return self._tag(m)
+
     def shaded_surface(self, fn: Callable[[float, float], Sequence], u_range, v_range,
                        nu: int = 24, nv: int = 12, light=(-0.4, -0.6, 0.9),
                        colors=("#5b7896", "#eef4fa"), ambient: float = 0.28,
                        bands: "int | None" = None, band_mix: float = 0.55,
                        mesh: "float | None" = 0.12, mesh_width: float = 0.7,
-                       cull: bool = True, flip: bool = False, fill_light=None) -> VGroup:
+                       cull: bool = True, flip: bool = False, fill_light=None,
+                       tint=None, tint_mix: float = 0.6) -> VGroup:
         """An **opaque, lit** surface ``fn(u, v) → (x, y, z)``, as a mesh of
         ``nu × nv`` filled quads — the illustrated look of a paper figure rather
         than a wireframe.
@@ -346,7 +418,9 @@ class View:
         **convex** surface that alone gets the occlusion right while the camera
         orbits (no depth sort needed). ``flip`` reverses the outward normal.
         ``fill_light=(direction, colour, strength)`` adds a second, tinted light
-        (a warm fill from the side opposite the key light, say).
+        (a warm fill from the side opposite the key light, say). ``tint(u, v)``
+        colours the surface by a function (curvature, say): each face's lit colour
+        is blended toward ``tint`` at its centre by ``tint_mix``.
 
         Culling hides whole faces, so along the silhouette the mesh ends in a
         fine staircase; put a coarse, *unculled* copy underneath (``cull=False``,
@@ -358,6 +432,9 @@ class View:
         us = np.linspace(u_range[0], u_range[1], nu + 1)
         vs = np.linspace(v_range[0], v_range[1], nv + 1)
         grid = [[np.asarray(fn(u, v), dtype=float) for v in vs] for u in us]
+        if self.gpu:
+            return self._shaded_mesh(grid, nu, nv, L, colors, ambient, bands, band_mix, mesh, mesh_width,
+                                     cull, flip, fill_light, tint, tint_mix, us, vs)
         g = VGroup()
         for i in range(nu):
             for j in range(nv):
@@ -374,11 +451,44 @@ class View:
                     fd, fcol, fk = fill_light
                     fd = np.asarray(fd, dtype=float) / (np.linalg.norm(fd) or 1.0)
                     col = interpolate_color(col, fcol, float(np.clip(fk * max(0.0, float(n @ fd)), 0.0, 1.0)))
+                if tint is not None:
+                    col = interpolate_color(col, tint(0.5 * (us[i] + us[i + 1]), 0.5 * (vs[j] + vs[j + 1])), tint_mix)
                 edge = darken(col, mesh) if mesh else col
                 face = VShape(fill_color=col, fill_opacity=1.0, stroke_color=edge,
                               stroke_width=mesh_width)
                 g.add(self._face(face, quad, n, cull))
         return g
+
+    def _shaded_mesh(self, grid, nu, nv, L, colors, ambient, bands, band_mix, mesh, mesh_width,
+                     cull, flip, fill_light, tint=None, tint_mix=0.6, us=None, vs=None) -> VShape:
+        """``shaded_surface`` in a GPU view: one mesh (not a shape per face), lit
+        exactly like the SVG version, face by face."""
+        from .color import interpolate_color
+
+        P = np.array([grid[i][j] for i in range(nu + 1) for j in range(nv + 1)])
+        idx = lambda i, j: i * (nv + 1) + j                                  # noqa: E731
+        faces, cols = [], []
+        for i in range(nu):
+            for j in range(nv):
+                quad = [idx(i, j), idx(i + 1, j), idx(i + 1, j + 1), idx(i, j + 1)]
+                q = P[quad]
+                n = np.cross(q[2] - q[0], q[3] - q[1])
+                if np.linalg.norm(n) < 1e-12:
+                    n = np.cross(q[1] - q[0], q[3] - q[0])
+                n = n / (np.linalg.norm(n) or 1.0) * (-1.0 if flip else 1.0)
+                lam = ambient + (1.0 - ambient) * max(0.0, float(n @ L))
+                if bands:
+                    lam = band_mix * (np.round(lam * bands) / bands) + (1.0 - band_mix) * lam
+                col = interpolate_color(colors[0], colors[1], float(np.clip(lam, 0.0, 1.0)))
+                if fill_light is not None:
+                    fd, fcol, fk = fill_light
+                    fd = np.asarray(fd, dtype=float) / (np.linalg.norm(fd) or 1.0)
+                    col = interpolate_color(col, fcol, float(np.clip(fk * max(0.0, float(n @ fd)), 0.0, 1.0)))
+                if tint is not None:
+                    col = interpolate_color(col, tint(0.5 * (us[i] + us[i + 1]), 0.5 * (vs[j] + vs[j + 1])), tint_mix)
+                faces.append(quad[::-1] if flip else quad)                   # outward = counter-clockwise
+                cols.append(col.hexa()[:7])
+        return self.mesh(P, faces, cols, cull=cull, edge=(mesh, mesh_width) if mesh else None)
 
     def _face(self, m: VShape, pts, normal, cull: bool) -> VShape:
         pts = [np.asarray(p, dtype=float) for p in pts]

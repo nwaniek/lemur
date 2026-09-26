@@ -281,6 +281,9 @@ class Hello(Anim):
   large mesh adds almost nothing to the file.
 - **Occlusion:** give a view an `occluder` (a sphere or a dome) and the player
   also hides, dashes or dims what goes behind it.
+- **GPU views:** `View(renderer="gpu")` draws a view with WebGL and a depth
+  buffer, so any surface hides anything (a torus, a saddle, several objects).
+  Print and PDF get an exact vector still of it.
 - **Illustrated style:** `lemur.anim.illustrate` draws paper-style figures with
   soft lighting, silhouettes, contact shadows and haloed curves.
 
@@ -371,6 +374,7 @@ and transitions. It also has the design mechanisms (`custom-templates`,
 `corporate`) and complete talks:
 - `lecture`, a multi-file course deck;
 - `tangent-space` and `tangent-space-illustrated`, which use 3‑D animation;
+- `torus`, which uses GPU views;
 - `optimal-transport`, a particle system on a sphere;
 - `parallel-transport`;
 - `live-shaders`, a demoscene-style deck with GPU shaders and sound;
@@ -405,6 +409,6 @@ Layout of the package:
 | `lemur/style.py`, `lemur/master.py`, `lemur/themes/` | the design box, `style.py` API, shipped themes |
 | `lemur/anim/` | `lemur.anim`: shapes, animations, 3‑D views, the keyframe IR |
 | `lemur/wgsl.py` | reads a `!compute` program's buffers and kernels at build time |
-| `lemur/assets/svg/` | the player of an `lmr2svg` deck (`runtime.js`, `world.js`, `shader.js`, `compute.js`) |
+| `lemur/assets/svg/` | the player of an `lmr2svg` deck (`runtime.js`, `world.js`, `gl.js`, `shader.js`, `compute.js`) |
 | `lemur/assets/` | runtime, CSS, themes and fonts of `lmr2slides` decks |
 | `spec/` | the language spec, the AST schema, the display contract |

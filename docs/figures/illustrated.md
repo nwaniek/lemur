@@ -36,12 +36,24 @@ shadow, solid, outline = fig.backdrop()     # add these first
 
 `Sphere(radius, center=(0, 0, 0), cap_z=None)` is a solid sphere. With
 `cap_z=0` it becomes a dome standing on the plane *z = 0*.
+`Torus(R, r, center=(0, 0, 0))` is a solid torus: tube radius *r* around a
+circle of radius *R*. A torus needs a GPU view, `View(..., renderer="gpu")`,
+where the drawn solid itself is the occluder. A sphere works in either kind of
+view.
+
+In a GPU view:
+- `fig.solid()` is one mesh;
+- `fig.silhouette()` is its smooth outline for the current camera, whatever
+  the shape;
+- the contact shadow is a set of translucent rings on the ground (an annulus,
+  under a torus).
 
 ## The vocabulary
 
 | Method | Draws |
 |---|---|
 | `fig.backdrop(nu=40)` | `(shadow, solid, silhouette)`: the lit occluder with its outline and contact shadow |
+| `fig.solid(nu, nv, tint=None)` | the occluder alone; `tint(u, v)` colours it by a function of its parameters |
 | `fig.shaded(fn, u_range, v_range)` | any other lit, opaque surface |
 | `fig.curve(points_fn, color=…, width=4, closed=False)` | a haloed curve; its hidden part is dashed (`hidden=None` drops it), and `occlude=False` draws it whole |
 | `fig.dot(where, color=…, ghost=False)` | a dot with a paper rim; it hides behind the occluder (`ghost=True`: it fades instead) |
@@ -65,9 +77,10 @@ module. A `Palette` is a small dataclass of colours: `paper`, `ink`,
 
 ## Limits
 
-The occluder is convex: a sphere, or a dome. Curves and dots are hidden against
-it exactly. Other surfaces drawn with `fig.shaded` hide their own back faces
-but not what is behind them.
+In an SVG view the occluder must be convex (a sphere or a dome), and curves
+and dots are hidden against it exactly. Other surfaces drawn with `fig.shaded`
+there hide their own back faces, but not what is behind them. GPU views have
+no such limit.
 
 The `tangent-space-illustrated` example is a whole lecture in this style, and
 `optimal-transport` adds a particle system of 180 points on a sphere.

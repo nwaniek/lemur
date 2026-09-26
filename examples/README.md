@@ -46,6 +46,7 @@ sidebar; the URL tracks `#/<slide>/<step>`.
 | [`parallel-transport/`](parallel-transport/) | a short **lecture**: a 3D sphere, the tangent space, and holonomy (a vector returns rotated) |
 | [`tangent-space/`](tangent-space/) | a short **lecture**: the tangent space of a dome — velocities, `T_pM`, `exp_p`/`log_p` unrolling and shrink-wrapping, the tangent bundle |
 | [`tangent-space-illustrated/`](tangent-space-illustrated/) | the same lecture, drawn like a paper figure: lit, opaque surfaces with a silhouette and contact shadow, haloed vectors, paper and ink (`View.shaded_surface`) |
+| [`torus/`](torus/) | **GPU views** (`View(renderer="gpu")`): a torus seen from every side, coordinates and the tangent plane, Gaussian curvature, geodesics — any surface hides anything, and print gets exact vector stills |
 | [`optimal-transport/`](optimal-transport/) | a short **lecture** with a **particle system**: optimal transport on a sphere — geodesic paths, random vs optimal plans, Sinkhorn blur, shapes reshaped (`lemur.anim.illustrate`) |
 | [`live-shaders/`](live-shaders/) | **live GPU shaders** on slides (`!shader`): a demoscene homage — aurora, raymarched terrain flyover, volumetric clouds, curl-noise fluid — stepped by the slides, with optional generative sound |
 | [`compute/`](compute/) | **WebGPU compute shaders** (`!compute`): a parallel reduction stepped with its code, a million-sample histogram with atomics, reaction–diffusion, a quarter of a million particles |

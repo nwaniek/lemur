@@ -128,7 +128,7 @@
     this.data = JSON.parse(el.getAttribute('data-anim'));
     this.beats = this.data.beats || [];
     this.vp = this.data.vp; this.ppu = this.data.ppu; this.asp = this.data.asp; this.fh0 = this.data.fh0;
-    this.cam = el.querySelector('.anim-cam');
+    this.cams = [].slice.call(el.querySelectorAll('.anim-cam'));   // two when a WebGL canvas sits between
     this.paths = {}; this.node = {}; this.byNode = {};
     el.querySelectorAll('[data-i]').forEach(function (p) { self.paths[+p.getAttribute('data-i')] = p; });
     (this.data.nodes || []).forEach(function (nd) { self.node[nd.i] = nd; });
@@ -139,8 +139,53 @@
     for (var n in this.byNode) for (var p in this.byNode[n])
       this.byNode[n][p].sort(function (x, y) { return x.t0 - y.t0; });
     this.views = this.data.views || [];
+    // GPU views (View(renderer="gpu")): drawn by svg/gl.js on a canvas, or — without
+    // WebGL, for print and thumbnails — as a vector still into their `.lmr-gv` group
+    this.gvEls = {};
+    el.querySelectorAll('.lmr-gv').forEach(function (g) { self.gvEls[+g.getAttribute('data-gv')] = g; });
+    this.gnodes = (this.data.nodes || []).filter(function (nd) {
+      return nd.w !== undefined && self.views[nd.w] && self.views[nd.w].gpu && nd.wk !== 'anchor';
+    });
+    this.geo = {};
+    this.gl = (this.gnodes.length && window.LMRGL) ? window.LMRGL.attach(this) : null;
     this.t = 0; this.target = 0; this.raf = 0;
   }
+  AnimPlayer.prototype.val = function (node, prop, t) {
+    return apick(this.byNode[node.i] || {}, prop, t, (node.s || {})[prop]);
+  };
+  // the GPU views' meshes at time t, and each view's occluder (its opaque meshes)
+  AnimPlayer.prototype.meshesAt = function (t) {
+    var self = this, LMRW = window.LMRW, meshes = {}, occ = {};
+    this.gnodes.forEach(function (nd) {
+      if (nd.wk !== 'mesh') return;
+      var P = self.val(nd, 'p3', t) || [];
+      var g = self.geo[nd.i] || (self.geo[nd.i] = LMRW.meshGeo(P, nd.faces, nd.fsz));
+      var m = meshes[nd.i] = { P: P, geo: g };
+      var v = self.val(nd, 'v', t), fo = self.val(nd, 'fo', t);
+      if (nd.occ && !(v && v[0] < 0.5) && fo && fo[0] >= 0.99) {
+        var o = occ[nd.w] = occ[nd.w] || { meshes: [] };
+        if (!m.occ || m.occ.P !== P) m.occ = LMRW.meshOccluder(P, g);
+        o.meshes.push(m.occ);
+      }
+    });
+    return { meshes: meshes, occ: occ };
+  };
+  // the GPU views at time t: WebGL when it is running, else a vector still
+  AnimPlayer.prototype.applyGPU = function (t, cams, mo) {
+    if (!this.gnodes.length) return;
+    var self = this, k;
+    if (this.gl && !this.printing && this.gl.draw(t, cams, mo)) {
+      for (k in this.gvEls) this.gvEls[k].style.display = 'none';
+      return;
+    }
+    for (k in this.gvEls) {
+      var nodes = this.gnodes.filter(function (nd) { return nd.w === +k; });
+      var occ = mo.occ[k] || this.views[k].occ;
+      this.gvEls[k].innerHTML = window.LMRW.renderGV(nodes, function (nd, p) { return self.val(nd, p, t); },
+                                                     cams[k], occ, this.ppu, mo.meshes);
+      this.gvEls[k].style.display = '';
+    }
+  };
   // View k's camera at time t (the angles may move; the rest is fixed).
   AnimPlayer.prototype.viewCam = function (k, t) {
     var v = this.views[k], ae = (v.ae && v.ae.length ? valueAt(v.ae, t) : null) || v.ae0;
@@ -178,8 +223,10 @@
     for (var i = 0; i < cam.length; i++) { if (cam[i].t0 <= t + 1e-9) v = evalTrack(cam[i], t); else break; }
     var cx = v ? v[0] : 0, cy = v ? v[1] : 0, fh = v ? v[2] : this.fh0;
     var vp = this.vp, s = Math.min(vp[2] / (fh * this.asp), vp[3] / fh);
-    this.cam.setAttribute('transform', 'matrix(' + fnum(s) + ',0,0,' + fnum(-s) + ',' +
-      fnum(vp[0] + vp[2] / 2 - s * cx) + ',' + fnum(vp[1] + vp[3] / 2 + s * cy) + ')');
+    var ox = vp[0] + vp[2] / 2 - s * cx, oy = vp[1] + vp[3] / 2 + s * cy;
+    this.camMat = [s, ox, oy];                    // anim coords → slide px, for the WebGL canvas
+    var tf = 'matrix(' + fnum(s) + ',0,0,' + fnum(-s) + ',' + fnum(ox) + ',' + fnum(oy) + ')';
+    this.cams.forEach(function (g) { g.setAttribute('transform', tf); });
   };
   AnimPlayer.prototype.apply = function (t) {
     this.applyCamera(t);
@@ -189,11 +236,13 @@
     // deck has any)
     var LMRW = window.LMRW, cams = [];
     if (LMRW) for (var k = 0; k < this.views.length; k++) cams.push(this.viewCam(k, t));
+    var mo = this.gnodes.length ? this.meshesAt(t) : { meshes: {}, occ: {} };
     for (var i in this.paths) {
       var node = this.node[i], el = this.paths[i], bag = this.byNode[i] || {}, st = node.s || {};
       var vis = apick(bag, 'v', t, st.v);
       if (vis && vis[0] < 0.5) { el.style.display = 'none'; continue; }
-      var cam = (node.w !== undefined && cams.length) ? cams[node.w] : null, occ = cam ? this.views[node.w].occ : null;
+      var cam = (node.w !== undefined && cams.length) ? cams[node.w] : null;
+      var occ = cam ? (mo.occ[node.w] || this.views[node.w].occ) : null;
       var dim = 1, len = node.len || 0;
       if (cam) {                            // a world shape: the player projects it
         var g3 = apick(bag, 'g3', t, st.g3);
@@ -236,10 +285,22 @@
       } else el.setAttribute('stroke', 'none');
       applyDraw(el, apick(bag, 'dr', t, st.dr), len, node.dash, scale);
     }
+    if (this.gnodes.length && LMRW) this.applyGPU(t, cams, mo);
   };
 
   var players = slides.map(function (s) {
     return [].slice.call(s.querySelectorAll('.lmr-anim')).map(function (el) { return new AnimPlayer(el); });
+  });
+  // Printing shows every animation at its end, drawn as vectors (never a canvas).
+  addEventListener('beforeprint', function () {
+    players.forEach(function (list) { list.forEach(function (p) {
+      p.printing = true;
+      if (p.raf) { cancelAnimationFrame(p.raf); p.raf = 0; }
+      p.apply(p.data.duration || 0);
+    }); });
+  });
+  addEventListener('afterprint', function () {
+    players.forEach(function (list) { list.forEach(function (p) { p.printing = false; p.apply(p.t); }); });
   });
   // A gated element is visible on step s when s is in its gate: one interval
   // (data-step[/data-until]) or several (data-steps="1-2,4-", an open end = on).

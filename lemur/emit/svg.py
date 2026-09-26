@@ -1317,6 +1317,151 @@ _USES_SHADERS = [False]
 _USES_WORLD = [False]
 #: … and when a slide carries a `!compute` (the WebGPU player).
 _USES_COMPUTE = [False]
+#: … and when an !anim has a GPU view (`View(renderer="gpu")`: the WebGL renderer).
+_USES_GL = [False]
+
+
+def _gpu_occluder(ir: dict, k: int, by: dict, final) -> "dict | None":
+    """The occluder of GPU view ``k`` in its final state: its visible, opaque,
+    occluding meshes (None if it has none)."""
+    from ..anim import world as W
+
+    meshes = []
+    for n in ir.get("nodes", []):
+        if n.get("w") != k or n.get("wk") != "mesh" or not n.get("occ"):
+            continue
+        st, props = n.get("s", {}), by.get(n["i"], {})
+        vis, fo = final(props, "v", st), final(props, "fo", st)
+        if (vis and vis[0] < 0.5) or not fo or fo[0] < 0.99:
+            continue
+        P = np.asarray(final(props, "p3", st), dtype=float).reshape(-1, 3)
+        faces = np.asarray(n["faces"], dtype=np.int64).reshape(-1, n["fsz"])
+        meshes.append(W.mesh_occluder(P, W.mesh_geo(P, faces)))
+    return {"meshes": meshes} if meshes else None
+
+
+def _trim3(P: np.ndarray, closed: bool, a: float, b: float) -> np.ndarray:
+    """The part of a 3-D polyline between arc-length fractions ``a`` and ``b``."""
+    if closed:
+        P = np.vstack([P, P[:1]])
+    if a <= 1e-4 and b >= 0.9999 or len(P) < 2:
+        return P
+    seg = np.linalg.norm(np.diff(P, axis=0), axis=1)
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    L = cum[-1] or 1.0
+    ts = np.clip([a * L, b * L], 0.0, L)
+    inner = [P[i] for i in range(len(P)) if ts[0] < cum[i] < ts[1]]
+    ends = [np.array([np.interp(t, cum, P[:, j]) for j in range(3)]) for t in ts]
+    return np.array([ends[0]] + inner + [ends[1]])
+
+
+def _bake_gpu_view(nodes: list, by: dict, final, cam, occ, ppu: float) -> str:
+    """A GPU view's still, as vector SVG in anim coordinates: every face (mesh
+    faces and filled 3-D polygons) painter-sorted far to near, then the visible
+    parts of its lines (or the hidden parts, for `hid` lines) in node order."""
+    from ..anim import world as W
+
+    def rgb(c):
+        return _rgb_hex([float(x) for x in c])
+
+    def path2(pts, closed):
+        d = "M" + "L".join(f"{fmt(x)},{fmt(y)}" for x, y in pts)
+        return d + ("Z" if closed else "")
+
+    faces: list = []          # (depth, svg)
+    lines: list = []
+    meshes: dict = {}
+    has_meshes = bool(occ and occ.get("meshes"))
+    for n in nodes:
+        st, props = n.get("s", {}), by.get(n["i"], {})
+        vis = final(props, "v", st)
+        if vis and vis[0] < 0.5:
+            continue
+        dim = 1.0
+        g3 = final(props, "g3", st)
+        if g3 is not None and W.occludes(occ, cam, g3):
+            dim = float(n.get("ga", 0.3))
+        wk = n.get("wk")
+        fo, fc = final(props, "fo", st), final(props, "fc", st)
+        so, sw, sc = final(props, "so", st), final(props, "sw", st), final(props, "sc", st)
+        fo_v = (fo[0] if fo else 0.0) * dim
+        so_v = (so[0] if so else 0.0) * dim
+        sw_v = (sw[0] if sw else 0.0)
+        if wk == "mesh":
+            P = np.asarray(final(props, "p3", st), dtype=float).reshape(-1, 3)
+            geo = W.mesh_geo(P, np.asarray(n["faces"], dtype=np.int64).reshape(-1, n["fsz"]))
+            meshes[n["i"]] = (P, geo)
+            if fo_v <= 0.001:
+                continue
+            cols = np.asarray(n["fcs"], dtype=float).reshape(-1, 3) / 255.0
+            edge = n.get("edge")
+            ew = (edge[1] if edge else 0.6) / ppu
+            for fi, pts in W.painter_faces(cam, P, geo, bool(n.get("cull"))):
+                col = cols[fi]
+                ecol = col * (1.0 - edge[0]) if edge else col
+                d = float(W.depth(cam, P[geo.faces[fi]].mean(axis=0)))
+                if fo_v < 0.999:          # translucent: no outline (it would double up at the seams)
+                    faces.append((d, f'<path d="{path2(pts, True)}" fill="{rgb(col)}" stroke="none" '
+                                     f'fill-opacity="{fmt(fo_v)}"/>'))
+                else:
+                    faces.append((d, f'<path d="{path2(pts, True)}" fill="{rgb(col)}" stroke="{rgb(ecol)}" '
+                                     f'stroke-width="{fmt(ew)}"/>'))
+            continue
+        # polylines of this node, in 3-D
+        polys: list = []
+        rule = n.get("wr")
+        local_occ = occ
+        if wk == "poly":
+            flat = final(props, "p3", st) or []
+            counts, closed = n.get("struct", [[], []])[0], n.get("struct", [[], []])[1]
+            off = 0
+            for c, cl in zip(counts, closed):
+                polys.append((np.asarray(flat[3 * off:3 * (off + c)], dtype=float).reshape(-1, 3), bool(cl)))
+                off += c
+            if rule == "cull" and not float(np.asarray(n["nrm"]) @ W.toward(cam)) > 0.0:
+                continue
+        elif wk == "contour":
+            src = meshes.get(n.get("src"))
+            if src is None:
+                continue
+            polys = [(L, False) for L in W.contour(cam, src[0], src[1])]
+            rule = "vis"
+            local_occ = W.contour_occluder(occ)
+        elif wk in ("limb", "base") and occ and not has_meshes:
+            polys = [((W.limb if wk == "limb" else W.base)(occ, cam), False)]
+        if not polys:
+            continue
+        if wk == "poly" and fo_v > 0.001:              # a filled 3-D polygon: a face
+            for P, cl in polys:
+                d = float(W.depth(cam, P.mean(axis=0)))
+                st_attr = (f' stroke="{rgb(sc)}" stroke-width="{fmt(sw_v / ppu)}" stroke-linejoin="round"'
+                           + (f' stroke-opacity="{fmt(so_v)}"' if so_v < 0.999 else "")
+                           if so_v > 0.001 and sw_v > 1e-4 else ' stroke="none"')
+                faces.append((d, f'<path d="{path2(W.project(cam, P), True)}" fill="{rgb(fc)}"'
+                                 + (f' fill-opacity="{fmt(fo_v)}"' if fo_v < 0.999 else "") + st_attr + "/>"))
+            continue
+        if so_v <= 0.001 or sw_v <= 1e-4:
+            continue
+        dr = final(props, "dr", st) or [0.0, 1.0]
+        if dr[1] - dr[0] < 1e-4:
+            continue
+        eff = rule if rule in ("vis", "hid") else ("vis" if has_meshes else None)
+        dash = n.get("dash")
+        attrs = (f'fill="none" stroke="{rgb(sc)}" stroke-width="{fmt(sw_v / ppu)}" stroke-linecap="round" '
+                 f'stroke-linejoin="round"' + (f' stroke-opacity="{fmt(so_v)}"' if so_v < 0.999 else "")
+                 + (f' stroke-dasharray="{" ".join(fmt(x) for x in dash)}"' if dash else ""))
+        for P, cl in polys:
+            if dr[0] > 1e-4 or dr[1] < 0.9999:
+                P, cl = _trim3(P, cl, dr[0], dr[1]), False
+            if eff is None or not occ:
+                if eff == "hid":
+                    continue
+                lines.append(f'<path d="{path2(W.project(cam, P), cl)}" {attrs}/>')
+                continue
+            for idx in W.split_polylines(local_occ, cam, P, cl, eff == "vis"):
+                lines.append(f'<path d="{path2(W.project(cam, P[idx]), False)}" {attrs}/>')
+    faces.sort(key=lambda f: f[0])
+    return "".join(f for _d, f in faces) + "".join(lines)
 
 
 def _emit_shader(fx: _Fx, node: dict, x: float, w: float, top: float, gate,
@@ -1662,13 +1807,36 @@ def _emit_anim(slide: Slide, node: dict, design: Design, pen: float, region: tup
         ae = v["ae"][-1]["v"][-1] if v.get("ae") else v["ae0"]
         wcams.append(W.Camera(float(ae[0]), float(ae[1]), float(v["s"]), tuple(v["c"]), tuple(v["o"]), v["p"]))
 
+    # GPU views: drawn live by WebGL; here (print, PDF, the overview, no WebGL)
+    # as an exact vector still. Their opaque meshes are the occluder.
+    views = ir.get("views") or []
+    gpu_views = {k for k, v in enumerate(views) if v.get("gpu")}
+    if gpu_views:
+        _USES_GL[0] = True
+    occs = [(v.get("occ") or None) for v in views]
+    for k in gpu_views:
+        occs[k] = _gpu_occluder(ir, k, by, final) or occs[k]
+
+    def is_gpu(n):
+        return n.get("w") in gpu_views and n.get("wk") != "anchor"
+
     paths = []
+    split_at = None
     for n in ir.get("nodes", []):
         st = n.get("s", {})
         props = by.get(n["i"], {})
+        if is_gpu(n):
+            if split_at is None:                         # the canvas goes here in the layer order
+                split_at = len(paths)
+                for k in sorted(gpu_views):
+                    gn = [m for m in ir["nodes"] if m.get("w") == k and is_gpu(m)]
+                    clip = next((m.get("clip") for m in gn if m.get("clip")), None)
+                    inner = _bake_gpu_view(gn, by, final, wcams[k], occs[k], ppu)
+                    paths.append((clip, f'<g class="lmr-gv" data-gv="{k}" stroke-linejoin="round">{inner}</g>'))
+            continue
         tm = list(final(props, "t", st) or [1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
         wcam = wcams[n["w"]] if "w" in n else None
-        occ = (ir["views"][n["w"]].get("occ") or None) if wcam else None
+        occ = occs[n["w"]] if wcam else None
         hidden, dim, length = False, 1.0, float(n.get("len") or 1.0)
         if wcam is not None:
             g3 = final(props, "g3", st)
@@ -1760,19 +1928,29 @@ def _emit_anim(slide: Slide, node: dict, design: Design, pen: float, region: tup
         f'<clipPath id="{cid2}" clipPathUnits="userSpaceOnUse">'
         f'<rect x="{fmt(k[0])}" y="{fmt(k[1])}" width="{fmt(k[2])}" height="{fmt(k[3])}"/></clipPath>'
         for k, cid2 in clips.items())
-    body, cur_clip, buf = [], None, []
-    for cl, ps in paths:
-        key = tuple(cl) if cl else None
-        if key != cur_clip:
-            if buf:
-                inner = "".join(buf)
-                body.append(f'<g clip-path="url(#{clips[cur_clip]})">{inner}</g>' if cur_clip else inner)
-            buf, cur_clip = [], key
-        buf.append(ps)
-    if buf:
-        inner = "".join(buf)
-        body.append(f'<g clip-path="url(#{clips[cur_clip]})">{inner}</g>' if cur_clip else inner)
-    paths_svg = "".join(body)
+    def runs_of(items):
+        body, cur_clip, buf = [], None, []
+        for cl, ps in items:
+            key = tuple(cl) if cl else None
+            if key != cur_clip:
+                if buf:
+                    inner = "".join(buf)
+                    body.append(f'<g clip-path="url(#{clips[cur_clip]})">{inner}</g>' if cur_clip else inner)
+                buf, cur_clip = [], key
+            buf.append(ps)
+        if buf:
+            inner = "".join(buf)
+            body.append(f'<g clip-path="url(#{clips[cur_clip]})">{inner}</g>' if cur_clip else inner)
+        return "".join(body)
+
+    cam_tf = f'transform="matrix({fmt(s)},0,0,{fmt(-s)},{fmt(ox)},{fmt(oy)})"'
+    if split_at is None:
+        paths_svg = runs_of(paths)
+    else:                          # below the canvas | the WebGL canvas | its still and what is above
+        paths_svg = (runs_of(paths[:split_at]) + '</g>'
+                     f'<foreignObject class="lmr-gl" x="{fmt(vx)}" y="{fmt(vy)}" width="{fmt(vw)}" '
+                     f'height="{fmt(vh)}"><div xmlns="http://www.w3.org/1999/xhtml" class="lmr-gl-box"></div>'
+                     f'</foreignObject><g class="anim-cam" {cam_tf}>' + runs_of(paths[split_at:]))
 
     payload = json.dumps({
         "nodes": ir.get("nodes", []),
@@ -2321,6 +2499,8 @@ def render_deck(title: str, slide_svgs: list, design: Design, live_reload: bool 
         js = _read_asset("svg/world.js") + "\n" + js
     if _USES_COMPUTE[0]:                      # the WebGPU player for !compute
         js = _read_asset("svg/compute.js") + "\n" + js
+    if _USES_GL[0]:                           # the WebGL renderer for GPU views
+        js = _read_asset("svg/gl.js") + "\n" + js
     tr = transition or {}
     cfg = {"labels": labels or {}, "across": tr.get("across") or "none",
            "step": tr.get("step") or "fade", "progress": progress}
@@ -2478,6 +2658,7 @@ def build_html(path: str, live_reload: bool = False, design: "Design | None" = N
     _USES_SHADERS[0] = False
     _USES_WORLD[0] = False
     _USES_COMPUTE[0] = False
+    _USES_GL[0] = False
     diag.drain()
     LAST_WARNINGS.clear()
     try:

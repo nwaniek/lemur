@@ -36,7 +36,7 @@ everywhere, needs no network, and supports the whole language.
 | per-slide classes `.center .middle .plain .fill` | ✓ | ✓ |
 | per-slide class `.dark` | ✓ | — |
 | `!plot` (matplotlib) | ✓ | — |
-| `!anim` (`lemur.anim`) | ✓ | — |
+| `!anim` (`lemur.anim`), with SVG and GPU views | ✓ | — |
 | `!shader` (live GLSL) | ✓ | — |
 | `!compute` (live WebGPU compute) | ✓ | — |
 | design | `style.py` (Python: fields and templates), or a `theme.css` | `theme.css` (CSS custom properties and rules) |

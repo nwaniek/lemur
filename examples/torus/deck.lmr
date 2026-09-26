@@ -1,0 +1,63 @@
+%% Curvature on a torus: 3-D figures drawn by the GPU renderer (View(renderer="gpu")),
+%% illustrated like a paper figure, with exact vector stills for print and PDF.
+%%   lmr2svg examples/torus/deck.lmr -o torus.html
+!title Curvature on a Torus
+!subtitle shape, frames, curvature and geodesics
+!author lemur examples
+!theme journal
+
+!slide A torus, from every side
+
+!columns[64 36]
+	!column
+		!anim
+			!src shape.py
+	!column[.center]
+		A torus is not convex: it hides parts of itself, differently from
+		every side.
+
+		The figure is drawn with a depth buffer on the GPU, so the shading, the
+		outline and the hidden parts stay right while the camera goes round,
+		and even under it.
+
+!slide Coordinates and the tangent plane
+
+!columns[64 36]
+	!column
+		!anim
+			!src frame.py
+	!column[.center]
+		A **meridian** ($u$ fixed) and a **parallel** ($v$ fixed) meet at $p$.
+
+		:: math
+			T(u, v) = \begin{pmatrix} (R + r\cos v)\cos u \\ (R + r\cos v)\sin u \\ r \sin v \end{pmatrix}
+
+		Their velocities $T_u$ and $T_v$ span the tangent plane $T_pM$.
+
+!slide Curvature changes sign
+
+!columns[64 36]
+	!column
+		!anim
+			!src curvature.py
+	!column[.center]
+		:: math
+			K = \frac{\cos v}{r\,(R + r\cos v)}
+
+		[Positive]{#c8562a} outside, [negative]{#2f6aa8} in the hole, zero on the
+		two circles where the torus is flat in one direction.
+
+!slide Geodesics from one point
+
+!columns[64 36]
+	!column
+		!anim
+			!src geodesics.py
+	!column[.center]
+		A geodesic is a curve that does not turn **within** the surface:
+
+		:: math
+			\ddot u &= \frac{2 r \sin v}{R + r\cos v}\,\dot u\,\dot v \\
+			\ddot v &= -\frac{R + r\cos v}{r}\,\sin v\;\dot u^2
+
+		Some wind round the outside forever; others dive through the hole.

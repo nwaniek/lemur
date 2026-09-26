@@ -116,7 +116,12 @@ class NodeInfo:
                 struct = (tuple(len(P) for P in polys), tuple(bool(c) for c in spec.closed))
                 pts = pts if pts is not None else np.zeros((1, 2))   # geometry lives in p3
                 self._ref = None
-            elif spec.kind in ("limb", "base"):
+            elif spec.kind == "mesh":
+                p3 = np.asarray(spec.points(), dtype=float).reshape(-1, 3)
+                struct = ((len(p3),), (False,))
+                pts = pts if pts is not None else np.zeros((1, 2))
+                self._ref = None
+            elif spec.kind in ("limb", "base", "contour"):
                 pts = pts if pts is not None else np.zeros((1, 2))
                 struct = ((), ())
                 self._ref = None
@@ -577,6 +582,23 @@ def _world_node(rec: "Recorder", info: NodeInfo, spec):
         samples = _uniform_polys(samples)
         struct = next(s.struct for s in samples if s.p3 is not None)
         node["struct"] = [list(struct[0]), [int(c) for c in struct[1]]]
+    elif spec.kind == "mesh":
+        m = spec.mesh
+        f = np.asarray(m["faces"])
+        node["fsz"] = int(f.shape[1])
+        node["faces"] = [int(x) for x in f.ravel()]
+        node["fcs"] = [int(round(x * 255)) for x in np.asarray(m["colors"]).ravel()]
+        if m.get("cull"):
+            node["cull"] = 1
+        if m.get("edge"):
+            node["edge"] = [round(m["edge"][0], 4), round(m["edge"][1], 4)]
+        if m.get("occlude"):
+            node["occ"] = 1
+    elif spec.kind == "contour":
+        src = rec.nodes.get(id(spec.source))
+        if src is None:
+            return None, []                   # its mesh was never shown
+        node["src"] = src.index
     mob = info.mobject
     if mob.dash:
         node["dash"] = [round(float(x), 4) for x in mob.dash]
@@ -599,7 +621,7 @@ def _world_node(rec: "Recorder", info: NodeInfo, spec):
         tb.add("v", seg, [[1.0 if s.visible else 0.0] for s in block], 0.5, step=True)
         if not any(s.visible for s in block):
             continue
-        if spec.kind == "poly":
+        if spec.kind in ("poly", "mesh"):
             if any(s.p3 is None or s.struct != block[0].struct for s in block):
                 continue                              # layout changed mid-segment: skip (rare)
             tb.add("p3", seg, [s.p3.ravel() for s in block], WORLD_TOL, places=3)
@@ -646,6 +668,7 @@ def _view_record(rec: "Recorder", k: int, view) -> dict:
     """A view's static projection and its camera angles over time."""
     occ = getattr(view, "occluder", None)
     out: dict = {"c": [round(float(view.center[0]), 5), round(float(view.center[1]), 5)],
+                 **({"gpu": 1} if getattr(view, "renderer", "svg") == "gpu" else {}),
                  "s": round(float(view.scale), 6),
                  "o": [round(float(x), 5) for x in view._data_origin],
                  "p": None if view._persp is None else float(view._persp),
