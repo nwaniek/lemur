@@ -102,6 +102,7 @@ class Style:
     code_size = 25
     table_size = 34
     caption_size = 28
+    chrome_size = None          # header, footer, slide number; None = half the body size
     title_weight = 650
     title_spacing = -0.01       # heading letter-spacing (em)
     title_rule = 3              # accent underline height (0 = none)
@@ -150,6 +151,7 @@ class Design:
     code_size: float
     table_size: float
     caption_size: float
+    chrome_size: float          # deck-wide: a template that resizes the body keeps the chrome
     title_weight: float
     title_spacing: float
     title_rule: float
@@ -203,6 +205,7 @@ def resolve_design(style, base_dir: str = ".") -> Design:
         serif=_families(s.serif), mono=_families(s.mono),
         title_size=float(s.title_size), body_size=float(s.body_size), math_size=float(s.math_size),
         code_size=float(s.code_size), table_size=float(s.table_size), caption_size=float(s.caption_size),
+        chrome_size=float(s.chrome_size if getattr(s, "chrome_size", None) is not None else 0.5 * float(s.body_size)),
         title_weight=float(s.title_weight), title_rule=float(s.title_rule),
         title_spacing=float(getattr(s, "title_spacing", 0.0)),
         line_height=float(getattr(s, "line_height", 1.45)),

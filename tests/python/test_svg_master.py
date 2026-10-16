@@ -348,5 +348,53 @@ class QualityAndLetterboxTest(unittest.TestCase):
         self.assertEqual(html.count('class="slide" style="background:#ffffff"'), 2)
 
 
+@unittest.skipUnless(_TOOLCHAIN, "needs Pango and latex+dvisvgm")
+class ChromeAndRevealSizeTest(unittest.TestCase):
+    """Layout that must not depend on per-slide details: the footer keeps its size
+    on a slide whose template shrinks the body, and a box in a column is as high
+    with a `!pause` before it as without."""
+
+    def _build(self, src_text, style=None):
+        from lemur.emit import svg
+        with tempfile.TemporaryDirectory(prefix="lemur-chrome-") as d:
+            src = os.path.join(d, "deck.lmr")
+            with open(src, "w", encoding="utf-8") as fh:
+                fh.write(src_text)
+            if style:
+                with open(os.path.join(d, "style.py"), "w", encoding="utf-8") as fh:
+                    fh.write(style)
+            out = os.path.join(d, "deck.html")
+            svg.build(src, out)
+            with open(out, encoding="utf-8") as fh:
+                return fh.read()
+
+    def test_footer_ignores_a_templates_body_size(self):
+        style = ("import dataclasses\n"
+                 "from lemur.style import Style as _B, register, content\n"
+                 "class Style(_B):\n    rule = '#abcdef'\n"
+                 "@register('dense')\n"
+                 "def dense(ctx):\n"
+                 "    ctx.design = dataclasses.replace(ctx.design, body_size=24)\n"
+                 "    content(ctx)\n")
+        html = self._build("!title T\n\n!slide A\n\ntext\n\n!slide[.dense] B\n\ntext\n", style)
+        rules = re.findall(r'<rect x="[^"]*" y="([^"]*)" width="[^"]*" height="1"[^>]*fill="#abcdef"', html)
+        self.assertEqual(len(rules), 2)                      # one footer rule per content slide
+        self.assertEqual(rules[0], rules[1])                 # … at the same height
+
+    def test_pause_does_not_resize_a_framed_box(self):
+        def deck(pause):
+            p = "\t\t!pause\n" if pause else ""
+            return ("!slide S\n\n!columns[50 50]\n"
+                    "\t!column\n" + p + "\t\t!style[.center .frame bg:#abcdef]\n"
+                    "\t\t\t**Head**\n\n\t\t\tline one\n\n"
+                    "\t!column\n" + p + "\t\t!style[.center .frame bg:#abcdef]\n"
+                    "\t\t\t**Head**\n\n\t\t\tline two\n")
+        box = r'<rect [^>]*height="([^"]*)"[^>]*fill="#abcdef"'
+        with_pause = re.findall(box, self._build(deck(True)))
+        without = re.findall(box, self._build(deck(False)))
+        self.assertEqual(len(without), 2)
+        self.assertEqual(with_pause, without)
+
+
 if __name__ == "__main__":
     unittest.main()

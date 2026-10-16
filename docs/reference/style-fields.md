@@ -58,6 +58,7 @@ Libre Baskerville) come with lemur.
 | `code_size` | `25` | code |
 | `table_size` | `34` | tables |
 | `caption_size` | `28` | captions |
+| `chrome_size` | `None` | header, footer and slide number; `None` = half of `body_size`. Deck-wide: a template that changes `body_size` for its slides leaves the chrome as it is |
 | `line_height` | `1.45` | line spacing of running text, as a multiple of the size |
 | `title_weight` | `650` | the weight of titles (100–900) |
 | `title_spacing` | `-0.01` | letter spacing of titles, in em |

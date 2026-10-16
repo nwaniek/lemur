@@ -230,7 +230,7 @@ def _margins(fx: _Fx, node: dict) -> tuple:
     if t == "style":
         if "frame" in _classes(node):           # a border stops margins collapsing through
             return 0.6 * F, 0.0, 0.6 * F, 0.0
-        body = node.get("body", [])             # no padding/border: the children's collapse through
+        body = _inner(node.get("body", []), gate_of(node))   # no padding/border: the children's collapse through
         return 0.6 * F, _edge_margin(fx, body, 0), 0.6 * F, _edge_margin(fx, body, -1)
     if t == "bibliography":
         bs = 0.75 * F
@@ -1054,6 +1054,22 @@ def _classes(node) -> list:
     return list(((node or {}).get("style") or {}).get("classes") or [])
 
 
+def _inner(body, gate) -> list:
+    """A container's children as it lays them out: a child whose ``reveal`` adds
+    nothing to the container's own ``gate`` loses it. The parser stamps the step
+    of a ``!pause`` on every block after it, nested ones included, so the
+    paragraphs in a revealed box repeat the box's reveal. They appear with the
+    box, not on a step of their own, so they get no step wrapper (which would
+    keep their ``:first-child``/``:last-child`` margins and make the box taller
+    than the same box without the ``!pause``)."""
+    out = []
+    for b in body or []:
+        if isinstance(b, dict) and b.get("reveal") and combine(gate, gate_of(b)) == gate:
+            b = {k: v for k, v in b.items() if k != "reveal"}
+        out.append(b)
+    return out
+
+
 def _b_columns(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align: str) -> "float | None":
     """``.lmr-columns``: a flex row, ``gap: 1.6em``; widths by weight; each
     column is its own formatting context (first child's top margin dropped, the
@@ -1071,15 +1087,16 @@ def _b_columns(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align:
     for cw in widths:
         xs.append(cx)
         cx += cw + gap
+    bodies = [_inner(col.get("body", []), gate) for col in cols]
     heights = []
-    for col, cx, cw in zip(cols, xs, widths):
-        h, trail = _measure(fx, col.get("body", []), cx, cw, align)
+    for body, cx, cw in zip(bodies, xs, widths):
+        h, trail = _measure(fx, body, cx, cw, align)
         heights.append(h + trail)
     row_h = max(heights) if heights else 0.0
-    for col, cx, cw, h in zip(cols, xs, widths, heights):
+    for col, body, cx, cw, h in zip(cols, bodies, xs, widths, heights):
         cl = _classes(col)
         off = (row_h - h) / 2 if "center" in cl else (row_h - h) if "bottom" in cl else 0.0
-        _flow_blocks(fx, col.get("body", []), cx, cw, top + off, gate, align, first_zero=True)
+        _flow_blocks(fx, body, cx, cw, top + off, gate, align, first_zero=True)
     return top + row_h
 
 
@@ -1091,10 +1108,11 @@ def _b_stack(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align: s
         return None
     heights = []
     for layer in layers:
-        h, trail = _measure(fx, layer.get("body", []), x, w, align)
+        lg = combine(gate, gate_of(layer))
+        body = _inner(layer.get("body", []), lg)
+        h, trail = _measure(fx, body, x, w, align)
         heights.append(h + trail)
-        _flow_blocks(fx, layer.get("body", []), x, w, top, combine(gate, gate_of(layer)), align,
-                     first_zero=True)
+        _flow_blocks(fx, body, x, w, top, lg, align, first_zero=True)
     return top + max(heights)
 
 
@@ -1124,7 +1142,7 @@ def _b_env(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align: str
     if head:
         head.append({"type": "text", "value": "."})
         y = _text_block(fx, head, fx.style, F, ix, iw, y, gate, "left", LH_BLOCK)
-    body = list(node.get("body", []))
+    body = _inner(node.get("body", []), gate)
     if kind == "proof" and body and body[-1].get("type") == "para":
         last = dict(body[-1])
         last["content"] = list(last.get("content", [])) + [
@@ -1154,7 +1172,7 @@ def _b_style(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align: s
     bw = 1.0 if frame else 0.0
     pad_y, pad_x = (0.5 * F, 0.8 * F) if frame else (0.0, 0.0)
     ix, iw = x + bw + pad_x, max(w - 2 * (bw + pad_x), F)
-    body = node.get("body", [])
+    body = _inner(node.get("body", []), gate)
     # framed: the children's edge margins stay inside the border; unframed (plain
     # or `bg:` only): they collapse through the box into its own margin (see
     # _margins), so the content starts right at its edge
@@ -2143,7 +2161,7 @@ def header(ctx: Ctx) -> None:
     if not hdr:
         return
     d, br = ctx.design, ctx.design.body_region
-    fs = 0.5 * d.body_size
+    fs = d.chrome_size
     top = 0.42 * _pad_y(d)
     bottom = _chrome_text(ctx, hdr, fs, br.x, br.w, top, d.caption)
     ctx.slide.add_rect(br.x, bottom + 0.35 * fs, br.w, 1.0, d.rule)
@@ -2190,7 +2208,7 @@ def madewith(ctx: Ctx) -> None:
     player's). Drawn over whatever the slide's template drew, so it works with
     every theme and custom cover."""
     d = ctx.design
-    fs = 0.45 * d.body_size
+    fs = 0.9 * d.chrome_size
     left = d.body_region.x
     bottom = d.height - 0.42 * _pad_y(d)
     color = d.caption
@@ -2226,7 +2244,7 @@ def footer(ctx: Ctx) -> None:
     if not nodes and not show_num:
         return
     d, br = ctx.design, ctx.design.body_region
-    fs = 0.5 * d.body_size
+    fs = d.chrome_size
     bottom = d.height - 0.42 * _pad_y(d)
     top = bottom - LH_BLOCK * fs - 0.35 * fs - 1.0
     ctx.slide.add_rect(br.x, top, br.w, 1.0, d.rule)

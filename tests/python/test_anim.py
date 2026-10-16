@@ -234,5 +234,25 @@ class WorldTwinTest(unittest.TestCase):
         self.assertTrue(any(c["rule"] == "hid" and c["py"] for c in cases))   # the split was exercised
 
 
+@unittest.skipUnless(_HAVE, "needs numpy (the svg extra)")
+class RigidTransformHandednessTest(unittest.TestCase):
+    """A straight segment is matched exactly by a direct *and* a reflected
+    similarity. The fit must not alternate between them from frame to frame: the
+    runtime lerps the matrices, and between a direct and a reflected one lies an
+    anisotropic matrix that squashes the stroke (a flickering line)."""
+
+    def test_collinear_source_always_fits_direct(self):
+        import numpy as np
+        from lemur.anim.ir import rigid_transform
+        src = np.array([[0.0, 0.0], [0.0, 1.0], [0.0, 2.0], [0.0, 3.0]])
+        for k in np.linspace(-2.0, 2.0, 41):
+            if abs(k) < 1e-9:
+                continue
+            tgt = np.array([[1.0, 0.5], [1.0, 0.5 + k], [1.0, 0.5 + 2 * k], [1.0, 0.5 + 3 * k]])
+            m = rigid_transform(src, tgt)
+            self.assertIsNotNone(m)
+            self.assertGreater(m[0] * m[3] - m[1] * m[2], 0.0, f"reflected fit at k={k}")
+
+
 if __name__ == "__main__":
     unittest.main()

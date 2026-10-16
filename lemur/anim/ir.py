@@ -357,6 +357,13 @@ def rigid_transform(source: np.ndarray, target: np.ndarray) -> np.ndarray | None
     sx, sy = source[:, 0], source[:, 1]
     rhs = np.concatenate([target[:, 0], target[:, 1]])
 
+    # The direct map wins whenever it fits; the reflection is only a fallback.
+    # A collinear source (a line, a tick, a residual segment) is matched exactly
+    # by *both*, and picking the one with the smaller round-off flips between
+    # them from frame to frame. The runtime lerps the matrices, and halfway
+    # between a direct and a reflected similarity lies a degenerate,
+    # anisotropic matrix: the stroke collapses to a hairline or a wedge and the
+    # shape flickers.
     best = None
     for reflect in (False, True):
         # direct:    x' =  a*x - b*y + e,   y' = b*x + a*y + f
@@ -369,6 +376,8 @@ def rigid_transform(source: np.ndarray, target: np.ndarray) -> np.ndarray | None
         err = float(np.max(np.abs(A @ sol - rhs)))
         if best is None or err < best[0]:
             best = (err, sol, s)
+        if err <= AFFINE_TOL:
+            break
 
     err, sol, s = best
     if err > AFFINE_TOL:

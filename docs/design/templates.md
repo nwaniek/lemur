@@ -58,6 +58,7 @@ as `ctx.mods`.
 |---|---|
 | `ctx.slide` | the slide to draw on (see below) |
 | `ctx.design` | the resolved design: every [style field](../reference/style-fields.md), e.g. `ctx.design.accent`, `ctx.design.body_region` |
+| `ctx.text_style` | the style of running text: its fonts and colours (see [below](#changing-the-design-of-one-kind-of-slide)) |
 | `ctx.title` | the slide title (`ctx.title_inline`: the same as inline nodes, with maths and emphasis) |
 | `ctx.blocks` | the slide's content, ready for `flow` |
 | `ctx.role` | `"cover"`, `"section"` or `"content"` |
@@ -104,6 +105,38 @@ def content_with_stamp(ctx):
     content(ctx)
     ctx.slide.add_rect(ctx.design.width - 40, 0, 40, 40, ctx.design.accent)
 ```
+
+## Changing the design of one kind of slide
+
+A template can hand the built-in a changed copy of the design. This `dense`
+template sets the text of a slide smaller, for the few slides that carry a
+theorem or a long table:
+
+```python
+import dataclasses
+from lemur.style import register, content
+
+@register("dense")
+def dense(ctx):
+    """The normal content slide, with running text, maths and tables set smaller."""
+    ctx.design = dataclasses.replace(ctx.design, body_size=31, math_size=31,
+                                     table_size=26, line_height=1.35)
+    content(ctx)
+```
+
+`!slide[.dense] Title` then selects it. Everything the slide draws reads
+`ctx.design`, so the replaced fields apply to this slide only. Not every field
+is per slide, though:
+
+| | Fields |
+|---|---|
+| **Per slide**: replace them on `ctx.design` | the sizes (`title_size`, `body_size`, `math_size`, `code_size`, `table_size`, `caption_size`), `line_height`, `title_weight`, `title_spacing`, `title_rule`, the regions, and the colours `title`, `math`, `accent` (title rule, section titles), `caption`, `rule` |
+| **Per slide, elsewhere** | the colours of running text, inline code and links: derive a new `ctx.text_style`, e.g. `ctx.text_style = ctx.text_style.derive(color="#…")` (fields `color`, `code_color`, `code_panel`, `link_color`, `accent`); the background: `ctx.slide.bg = "#…"` |
+| **Deck-wide**: the same on every slide | `width`/`height` (the design box), the fonts (`serif`, `mono`), `transition`, `preamble`, and `chrome_size`: the header, footer and slide number keep their size whatever a template does to `body_size` |
+
+To change the chrome on purpose (a smaller footer on a template that has the
+room, say), replace `chrome_size` itself:
+`dataclasses.replace(ctx.design, chrome_size=16)`.
 
 ## A complete corporate design
 
