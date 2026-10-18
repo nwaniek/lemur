@@ -24,6 +24,17 @@ Templates
 .. autoclass:: lemur.emit.svg.Ctx
    :no-members:
 
+Named styles
+------------
+
+What a ``.name`` means in ``[text]{.name}`` and ``!style[.name]``; see
+:doc:`../design/style`.
+
+.. autofunction:: lemur.layout.named.named_style
+
+.. autoclass:: lemur.layout.named.Look
+   :no-members:
+
 Helpers
 -------
 

@@ -28,7 +28,7 @@ from typing import Optional
 
 import numpy as np
 
-from ..layout import diag
+from ..layout import diag, named
 from ..layout.inline import LINE_HEIGHT, Laid, TextStyle, layout_block, layout_inline, math_scale_for
 from ..layout.steps import ALWAYS, combine, first_step, from_range, gate_of, parse_spec
 from ..master import (Design, Region, css_theme_design, default_design, find_theme_dir,
@@ -228,10 +228,11 @@ def _margins(fx: _Fx, node: dict) -> tuple:
     if t == "env":
         return 0.6 * F, 0.0, 0.6 * F, 0.0
     if t == "style":
-        if "frame" in _classes(node):           # a border stops margins collapsing through
-            return 0.6 * F, 0.0, 0.6 * F, 0.0
+        look, sub = _style_look(fx, node)      # margins in the box's own em (CSS)
+        if look.frame:                          # a border stops margins collapsing through
+            return 0.6 * sub.F, 0.0, 0.6 * sub.F, 0.0
         body = _inner(node.get("body", []), gate_of(node))   # no padding/border: the children's collapse through
-        return 0.6 * F, _edge_margin(fx, body, 0), 0.6 * F, _edge_margin(fx, body, -1)
+        return 0.6 * sub.F, _edge_margin(sub, body, 0), 0.6 * sub.F, _edge_margin(sub, body, -1)
     if t == "bibliography":
         bs = 0.75 * F
         return 0.3 * bs, 0.25 * bs, 0.3 * bs, 0.25 * bs
@@ -1157,18 +1158,32 @@ def _b_env(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align: str
     return y
 
 
+def _style_look(fx: _Fx, node: dict) -> tuple:
+    """A styled block's resolved :class:`~lemur.layout.named.Look` and the flow
+    context of its body: the body's text style, and the design scaled by the
+    look's ``size`` (so a ``.big`` box enlarges its text, maths, tables and
+    padding alike, as a CSS ``font-size`` in em would)."""
+    from ..layout.inline import apply_look, look_of
+    look = named.resolve(node.get("style") or {}, look_of(fx.style))
+    sub = fx.at(style=apply_look(fx.style, look, scale=False))
+    k = look.size
+    if k != 1.0:
+        d = fx.design
+        sub = sub.at(design=replace(d, body_size=d.body_size * k, math_size=d.math_size * k,
+                                    code_size=d.code_size * k, table_size=d.table_size * k,
+                                    caption_size=d.caption_size * k))
+    return look, sub
+
+
 def _b_style(fx: _Fx, node: dict, x: float, w: float, top: float, gate, align: str) -> float:
-    """``.lmr-style``: its colour/emphasis applies to the body; ``.center``
-    centres it; ``.frame`` draws a 1px rule border (radius 6, padding
-    ``.5em .8em``); ``bg:`` tints the box (unpadded unless framed)."""
-    from ..layout.inline import _span_style
-    d, F = fx.design, fx.F
-    sd = node.get("style") or {}
-    classes = sd.get("classes") or []
-    st = _span_style(fx.style, sd)
-    sub = fx.at(style=st)
-    al = "center" if "center" in classes else align
-    frame, bg = "frame" in classes, sd.get("bg")
+    """``.lmr-style``: its named styles (built in, or from the deck's style.py)
+    and colours apply to the body; ``.center`` centres it; ``.frame`` draws a 1px
+    rule border (radius 6, padding ``.5em .8em``); ``bg:`` tints the box
+    (unpadded unless framed); a ``size`` scales the whole box."""
+    look, sub = _style_look(fx, node)
+    d, F = fx.design, sub.F
+    al = look.align or align
+    frame, bg = look.frame, look.bg
     bw = 1.0 if frame else 0.0
     pad_y, pad_x = (0.5 * F, 0.8 * F) if frame else (0.0, 0.0)
     ix, iw = x + bw + pad_x, max(w - 2 * (bw + pad_x), F)
@@ -2760,6 +2775,7 @@ def build_html(path: str, live_reload: bool = False, design: "Design | None" = N
     pres = ast.get("presentation", {}) or {}   # deck chrome/transition/theme/aspect
     doc_dir = os.path.dirname(os.path.abspath(path))
     _saved_templates = dict(_TEMPLATES)        # this build's registrations must not leak
+    _saved_named = dict(named.registry())      # (templates and named styles alike)
     _BUILD_MEMO.clear()
     _BUILD_MEMO.update(preload or {})
     _USES_SHADERS[0] = False
@@ -2773,6 +2789,8 @@ def build_html(path: str, live_reload: bool = False, design: "Design | None" = N
     finally:
         _TEMPLATES.clear()
         _TEMPLATES.update(_saved_templates)
+        named.registry().clear()
+        named.registry().update(_saved_named)
         _BUILD_MEMO.clear()
 
 

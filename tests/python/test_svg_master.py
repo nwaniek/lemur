@@ -396,5 +396,73 @@ class ChromeAndRevealSizeTest(unittest.TestCase):
         self.assertEqual(with_pause, without)
 
 
+@unittest.skipUnless(_TOOLCHAIN, "needs Pango and latex+dvisvgm")
+class NamedStyleTest(unittest.TestCase):
+    """Named styles (`.name` in `[text]{.name}` and `!style[.name]`) defined in a
+    deck's style.py with `@named_style`, next to the built-in ones."""
+
+    STYLE = ("from lemur.style import named_style\n"
+             "@named_style('big')\n"
+             "def big(s):\n    s.size = 1.5\n"
+             "@named_style('warn')\n"
+             "def warn(s):\n    s.color = '#b42318'\n"
+             "@named_style('accent')\n"
+             "def accent(s):\n    s.color = '#123456'\n")
+
+    def _build(self, src_text, style=None):
+        from lemur.emit import svg
+        with tempfile.TemporaryDirectory(prefix="lemur-named-") as d:
+            src = os.path.join(d, "deck.lmr")
+            with open(src, "w", encoding="utf-8") as fh:
+                fh.write(src_text)
+            if style:
+                with open(os.path.join(d, "style.py"), "w", encoding="utf-8") as fh:
+                    fh.write(style)
+            out = os.path.join(d, "deck.html")
+            svg.build(src, out)
+            with open(out, encoding="utf-8") as fh:
+                return fh.read(), list(svg.LAST_WARNINGS)
+
+    @staticmethod
+    def _scales(html):
+        """The glyph sizes used on the slides (the scale of each placed outline)."""
+        return {float(m) for m in re.findall(r'<use href="#g\d+" transform="matrix\(([\d.]+),0,0,-', html)}
+
+    @staticmethod
+    def _right(html):
+        """The x of the rightmost body-text glyph (how far the text runs; the
+        footer's slide number is set smaller and left out)."""
+        return max(float(m) for m in re.findall(r'<use href="#g\d+" transform="matrix\(40,0,0,-40,([\d.]+),', html))
+
+    def test_span_size(self):
+        big, _ = self._build("!slide S\n\nplain [large words]{.big} plain\n", self.STYLE)
+        plain, _ = self._build("!slide S\n\nplain [large words]{.warn} plain\n", self.STYLE)
+        self.assertGreater(self._right(big), self._right(plain) + 50)   # the span is set larger
+
+    def test_block_size_scales_text_and_maths(self):
+        plain, _ = self._build("!slide S\n\n!style[.frame]\n\ttext $x^2$\n", self.STYLE)
+        big, _ = self._build("!slide S\n\n!style[.big .frame]\n\ttext $x^2$\n", self.STYLE)
+        self.assertIn(60.0, self._scales(big))
+        self.assertNotIn(60.0, self._scales(plain))
+        box = r'<rect [^>]*height="([\d.]+)"[^>]*stroke='
+        h0, h1 = float(re.search(box, plain).group(1)), float(re.search(box, big).group(1))
+        self.assertAlmostEqual(h1 / h0, 1.5, delta=0.1)       # text, maths and padding scale alike
+
+    def test_redefining_a_builtin(self):
+        html, _ = self._build("!slide S\n\nan [accent]{.accent} word\n", self.STYLE)
+        self.assertIn('fill="#123456"', html)
+
+    def test_explicit_colour_wins(self):
+        html, _ = self._build("!slide S\n\na [word]{.warn #00aa00} here\n", self.STYLE)
+        self.assertIn('fill="#00aa00"', html)
+        self.assertNotIn('fill="#b42318"', html)
+
+    def test_unknown_name_warns_and_registrations_do_not_leak(self):
+        _, warns = self._build("!slide S\n\na [word]{.big} here\n", self.STYLE)
+        self.assertFalse([w for w in warns if "unknown style" in w])
+        _, warns = self._build("!slide S\n\na [word]{.big} here\n")      # no style.py
+        self.assertTrue([w for w in warns if "unknown style '.big'" in w])
+
+
 if __name__ == "__main__":
     unittest.main()

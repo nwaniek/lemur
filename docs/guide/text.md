@@ -75,8 +75,9 @@ A [red word]{#c0392b}, a [highlighted phrase]{bg:#fff3b0},
 The style uses the same small vocabulary everywhere in lemur:
 
 - `.name` is a named style. Built in are `.bold`, `.italic`, `.underline`,
-  `.strike` and `.accent` (the theme's accent colour). Other names are for a
-  theme or template to define.
+  `.strike` and `.accent` (the theme's accent colour). Other names, such as a
+  `.big` or `.small` for a different text size, are defined in the deck's
+  [`style.py`](../design/style.md#named-styles).
 - `#rrggbb` (or a CSS colour name such as `teal`) sets the text colour.
 - `bg:#rrggbb` sets a background.
 

@@ -76,7 +76,9 @@ slide on a keypress:
 
 `!style[…]` styles a whole block of content. It uses the same vocabulary as
 [styled spans](text.md#styled-spans), plus two built-in block classes: `.frame`
-draws a rounded box and `.center` centres the content.
+draws a rounded box and `.center` centres the content. Your own
+[named styles](../design/style.md#named-styles) work on blocks too; one that
+changes the size scales the whole block, maths and spacing included.
 
 ```{lemur-example}
 !slide A framed panel

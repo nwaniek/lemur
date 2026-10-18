@@ -86,6 +86,72 @@ kind of slide. That is how to get a brand bar on every slide, a custom title
 slide, or a special layout selected with `!slide[.name]`. See
 [Templates](templates.md).
 
+## Named styles
+
+A `.name` in a [styled span](../guide/text.md#styled-spans) (`[text]{.name}`)
+or a [styled block](../guide/layout.md#styled-blocks) (`!style[.name]`) is a
+**named style**. Beside the built-in ones (`.bold`, `.italic`, `.underline`,
+`.strike`, `.accent`, `.center`, `.frame`), a `style.py` defines its own, the
+same way it registers templates: a function, registered under its name, that
+changes the look of the text it is given:
+
+```python
+# style.py
+from lemur.style import named_style
+
+
+@named_style("big")
+def big(s):
+    s.size = 1.4                  # 40% larger than the text around it
+
+
+@named_style("warn")
+def warn(s):
+    s.color = "#b42318"
+    s.weight = "bold"
+
+
+@named_style("note")
+def note(s):                      # meant for a block: a tinted, framed box
+    s.frame = True
+    s.bg = "#eef4f8"
+    s.size = 0.85
+```
+
+```{lemur-example}
+:files: named/style.py
+
+!slide Named styles
+
+A [big]{.big} word, a [small]{.small} one, and a [warning]{.warn}.
+They combine: [big and red]{.big .warn}.
+
+!style[.note]
+	A note: the whole box is set smaller, including its maths, $e^{i\pi} = -1$,
+	and its padding.
+```
+
+The function receives a `Look`, which starts out as the look of the
+surrounding text, and sets the fields it cares about:
+
+| Field | |
+|---|---|
+| `size` | a factor of the surrounding text: `1.4` is 40% larger. On a block it scales everything in it (text, maths, tables, code, padding), like `font-size` in CSS |
+| `color`, `bg` | the text colour and a background (on a block: the box tint) |
+| `weight`, `italic`, `underline`, `strike` | `weight` is `"normal"`, `"bold"` or 100–900 |
+| `font` | a family name, or a tuple of names tried in order; `None` keeps the current one |
+| `letter_spacing` | in em |
+| `frame` | blocks only: a rounded border with padding |
+| `align` | blocks only: `"center"`, or `"right"` (text), or `None` to keep the surrounding alignment |
+| `accent` | the theme's accent colour, to read: `s.color = s.accent` |
+
+The names of one style apply in the order they are written, and an explicit
+colour or background in the same style (`{.warn #0b6e4f}`) always wins.
+Registering a built-in name redefines it for the whole deck, just as
+registering `content` restyles every slide: `@named_style("accent")` changes
+what every `.accent` looks like. A name that is neither built in nor defined
+gets a warning when the deck is built.
+
 ## Sharing a design
 
 To use one design in several decks, put it in a theme folder,

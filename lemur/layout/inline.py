@@ -30,7 +30,7 @@ import numpy as np
 
 from ..typeset import latex, pango
 from ..typeset.geometry import bbox_of
-from . import diag, steps
+from . import diag, named, steps
 
 __all__ = ["TextStyle", "Laid", "layout_block", "layout_inline", "LINE_HEIGHT",
            "math_scale_for"]
@@ -116,28 +116,37 @@ def math_scale_for(font: str) -> float:
     return _xheight_cache[font]
 
 
+def look_of(style: "TextStyle") -> named.Look:
+    """The :class:`~lemur.layout.named.Look` a named style starts from: the
+    look of the text it sits in."""
+    return named.Look(color=style.color, weight=style.weight, italic=style.italic,
+                      underline=style.underline, strike=style.strike,
+                      letter_spacing=style.letter_spacing, accent=style.accent)
+
+
+def apply_look(style: "TextStyle", look: named.Look, scale: bool = True) -> "TextStyle":
+    """``style`` with a resolved look's text fields. ``scale``: apply its size
+    to the text (a span); a block scales its design instead (see the emitter)."""
+    kw: dict = dict(color=look.color, weight=look.weight, italic=look.italic,
+                    underline=look.underline, strike=look.strike,
+                    letter_spacing=look.letter_spacing, accent=look.accent)
+    if look.bg:
+        kw["bg"] = look.bg
+        kw["pad"] = 0.0
+    if look.font:
+        fams = [look.font] if isinstance(look.font, str) else list(look.font)
+        kw["font"] = pango.resolve_family(fams)
+    if scale and look.size != 1.0:
+        kw["size"] = style.size * look.size
+    return style.derive(**kw)
+
+
 def _span_style(style: "TextStyle", sd) -> "TextStyle":
-    """Fold a span/style `{color, classes, bg}` dict into a derived TextStyle."""
+    """Fold a span/style `{color, classes, bg}` dict into a derived TextStyle:
+    its named styles (built-in or from the deck's style.py), then its colours."""
     if not sd:
         return style
-    kw: dict = {}
-    classes = sd.get("classes") or []
-    if "accent" in classes:
-        kw["color"] = style.accent
-    if sd.get("color"):
-        kw["color"] = sd["color"]
-    if sd.get("bg"):
-        kw["bg"] = sd["bg"]
-        kw["pad"] = 0.0
-    if "bold" in classes:
-        kw["weight"] = "bold"
-    if any(c in classes for c in ("emph", "italic", "it")):
-        kw["italic"] = True
-    if "underline" in classes:
-        kw["underline"] = True
-    if "strike" in classes:
-        kw["strike"] = True
-    return style.derive(**kw) if kw else style
+    return apply_look(style, named.resolve(sd, look_of(style)))
 
 
 # --------------------------------------------------------------------------

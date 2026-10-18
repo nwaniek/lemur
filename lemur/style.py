@@ -31,7 +31,18 @@ or a new name to select per slide with ``!slide[.name]``::
         flow(ctx, ctx.blocks, (80.0, ctx.design.width - 160), 210.0)
         footer(ctx)
 
-To extend a built-in, compose: call the built-in ``content(ctx)`` then add your
+**Named styles** — what a ``.name`` means in a span (``[text]{.name}``) or a
+styled block (``!style[.name]``): a function that edits a :class:`Look`,
+registered with :func:`named_style`. Registering a built-in name (``bold``,
+``accent``, ``frame``, …) redefines it for the deck::
+
+    from lemur.style import named_style
+
+    @named_style("big")
+    def big(s):
+        s.size = 1.4          # relative to the text around it
+
+To extend a built-in template, compose: call the built-in ``content(ctx)`` then add your
 own drawing. The module runs at build time as trusted code; its registrations are
 isolated per build. ``ctx`` carries ``slide``, ``design``, ``serif``/``mono``/
 ``text_style``, ``title``, ``blocks``, ``role``, ``meta``, ``pres``, ``mods``,
@@ -39,6 +50,7 @@ isolated per build. ``ctx`` carries ``slide``, ``design``, ``serif``/``mono``/
 """
 
 from .master import Design, Region, Style, resolve_design  # noqa: F401
+from .layout.named import Look, named_style  # noqa: F401
 from .emit.svg import (  # noqa: F401
     Ctx, body_bottom, content, cover, flow, footer, header, line, load_style,
     logo, region, register, section,
@@ -47,6 +59,7 @@ from .emit.svg import (  # noqa: F401
 __all__ = [
     "Style", "Region", "Design", "resolve_design",              # design
     "register", "Ctx", "load_style",                            # template registry
+    "named_style", "Look",                                      # named styles (.name)
     "line", "flow", "footer", "header", "logo", "region", "body_bottom",  # helpers
     "content", "cover", "section",                              # built-in templates (for composition)
 ]
